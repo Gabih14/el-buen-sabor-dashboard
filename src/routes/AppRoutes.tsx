@@ -1,6 +1,6 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth0 } from '@auth0/auth0-react';
 
 // Pages
 import LoginPage from '../pages/auth/LoginPage';
@@ -13,20 +13,20 @@ import OrdersPage from '../pages/OrdersPage';
 import DeliveryPage from '../pages/DeliveryPage';
 import ReportsPage from '../pages/ReportsPage';
 import SettingsPage from '../pages/SettingsPage';
+import { CallbackPage } from '../pages/CallbackPage'; // 👈 NUEVO
+
+// Helpers
+const getRole = (user: any): string | undefined => {
+  return user?.['https://buensabor/roles']?.[0];
+};
 
 // Route Guards
 const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated, currentUser } = useAuth();
-  
-  if (!isAuthenticated) {
-    return <Navigate to="/login" />;
-  }
-  
-  // If authenticated but first login, redirect to change password
-  if (currentUser?.isFirstLogin) {
-    return <Navigate to="/change-password" />;
-  }
-  
+  const { isAuthenticated, isLoading } = useAuth0();
+
+  if (isLoading) return <p>Cargando...</p>;
+  if (!isAuthenticated) return <Navigate to="/login" />;
+
   return <>{children}</>;
 };
 
@@ -34,27 +34,22 @@ const RoleBasedRoute: React.FC<{
   children: React.ReactNode;
   allowedRoles: string[];
 }> = ({ children, allowedRoles }) => {
-  const { currentUser } = useAuth();
-  
-  if (!currentUser || !allowedRoles.includes(currentUser.role)) {
+  const { user } = useAuth0();
+  const role = getRole(user);
+
+  if (!role || !allowedRoles.includes(role)) {
     return <Navigate to="/dashboard" />;
   }
-  
+
   return <>{children}</>;
 };
 
 const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated, currentUser } = useAuth();
-  
-  if (isAuthenticated) {
-    // If authenticated but first login, redirect to change password
-    if (currentUser?.isFirstLogin) {
-      return <Navigate to="/change-password" />;
-    }
-    // Otherwise, redirect to dashboard
-    return <Navigate to="/dashboard" />;
-  }
-  
+  const { isAuthenticated, isLoading } = useAuth0();
+
+  if (isLoading) return <p>Cargando...</p>;
+  if (isAuthenticated) return <Navigate to="/dashboard" />;
+
   return <>{children}</>;
 };
 
@@ -63,11 +58,12 @@ const AppRoutes: React.FC = () => {
     <Routes>
       {/* Public Routes */}
       <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+      <Route path="/callback" element={<CallbackPage />} /> {/* 👈 NUEVO */}
       <Route path="/change-password" element={<ChangePasswordPage />} />
-      
+
       {/* Private Routes */}
       <Route path="/dashboard" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
-      
+
       {/* Role-restricted Routes */}
       <Route 
         path="/customers" 
@@ -79,7 +75,7 @@ const AppRoutes: React.FC = () => {
           </PrivateRoute>
         } 
       />
-      
+
       <Route 
         path="/employees" 
         element={
@@ -90,7 +86,7 @@ const AppRoutes: React.FC = () => {
           </PrivateRoute>
         } 
       />
-      
+
       <Route 
         path="/orders" 
         element={
@@ -101,7 +97,7 @@ const AppRoutes: React.FC = () => {
           </PrivateRoute>
         } 
       />
-      
+
       <Route 
         path="/delivery" 
         element={
@@ -112,7 +108,7 @@ const AppRoutes: React.FC = () => {
           </PrivateRoute>
         } 
       />
-      
+
       <Route 
         path="/reports" 
         element={
@@ -123,7 +119,7 @@ const AppRoutes: React.FC = () => {
           </PrivateRoute>
         } 
       />
-      
+
       <Route 
         path="/settings" 
         element={
@@ -134,10 +130,10 @@ const AppRoutes: React.FC = () => {
           </PrivateRoute>
         } 
       />
-      
+
       {/* Redirects */}
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
-      
+
       {/* 404 Route */}
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
