@@ -13,43 +13,22 @@ import OrdersPage from '../pages/OrdersPage';
 import DeliveryPage from '../pages/DeliveryPage';
 import ReportsPage from '../pages/ReportsPage';
 import SettingsPage from '../pages/SettingsPage';
-import { CallbackPage } from '../pages/CallbackPage'; // 👈 NUEVO
+import { CallbackPage } from '../pages/CallbackPage';
 
-// Helpers
-const getRole = (user: any): string | undefined => {
-  return user?.['https://buensabor/roles']?.[0];
-};
+// Components
+import { ProtectedRoute } from '../components/auth/ProtectedRoute';
 
-// Route Guards
-const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated, isLoading } = useAuth0();
-
-  if (isLoading) return <p>Cargando...</p>;
-  if (!isAuthenticated) return <Navigate to="/login" />;
-
-  return <>{children}</>;
-};
-
-const RoleBasedRoute: React.FC<{
-  children: React.ReactNode;
-  allowedRoles: string[];
-}> = ({ children, allowedRoles }) => {
-  const { user } = useAuth0();
-  const role = getRole(user);
-
-  if (!role || !allowedRoles.includes(role)) {
-    return <Navigate to="/dashboard" />;
-  }
-
-  return <>{children}</>;
-};
+// Optional: Define reusable role arrays
+const ALL_ROLES = ['admin', 'manager', 'employee', 'delivery'];
+const ADMIN_MANAGER = ['admin', 'manager'];
+const ADMIN = ['admin'];
+const ADMIN_MANAGER_DELIVERY = ['admin', 'manager', 'delivery'];
+const ADMIN_MANAGER_EMPLOYEE = ['admin', 'manager', 'employee'];
 
 const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, isLoading } = useAuth0();
-
   if (isLoading) return <p>Cargando...</p>;
   if (isAuthenticated) return <Navigate to="/dashboard" />;
-
   return <>{children}</>;
 };
 
@@ -58,77 +37,71 @@ const AppRoutes: React.FC = () => {
     <Routes>
       {/* Public Routes */}
       <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
-      <Route path="/callback" element={<CallbackPage />} /> {/* 👈 NUEVO */}
+      <Route path="/callback" element={<CallbackPage />} />
       <Route path="/change-password" element={<ChangePasswordPage />} />
 
-      {/* Private Routes */}
-      <Route path="/dashboard" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
-
-      {/* Role-restricted Routes */}
-      <Route 
-        path="/customers" 
+      {/* Protected Routes */}
+      <Route
+        path="/dashboard"
         element={
-          <PrivateRoute>
-            <RoleBasedRoute allowedRoles={['admin', 'manager', 'employee']}>
-              <CustomersPage />
-            </RoleBasedRoute>
-          </PrivateRoute>
-        } 
+          <ProtectedRoute allowedRoles={ALL_ROLES}>
+            <DashboardPage />
+          </ProtectedRoute>
+        }
       />
 
-      <Route 
-        path="/employees" 
+      <Route
+        path="/customers"
         element={
-          <PrivateRoute>
-            <RoleBasedRoute allowedRoles={['admin', 'manager']}>
-              <EmployeesPage />
-            </RoleBasedRoute>
-          </PrivateRoute>
-        } 
+          <ProtectedRoute allowedRoles={ADMIN_MANAGER_EMPLOYEE}>
+            <CustomersPage />
+          </ProtectedRoute>
+        }
       />
 
-      <Route 
-        path="/orders" 
+      <Route
+        path="/employees"
         element={
-          <PrivateRoute>
-            <RoleBasedRoute allowedRoles={['admin', 'manager', 'employee', 'delivery']}>
-              <OrdersPage />
-            </RoleBasedRoute>
-          </PrivateRoute>
-        } 
+          <ProtectedRoute allowedRoles={ADMIN_MANAGER}>
+            <EmployeesPage />
+          </ProtectedRoute>
+        }
       />
 
-      <Route 
-        path="/delivery" 
+      <Route
+        path="/orders"
         element={
-          <PrivateRoute>
-            <RoleBasedRoute allowedRoles={['admin', 'manager', 'delivery']}>
-              <DeliveryPage />
-            </RoleBasedRoute>
-          </PrivateRoute>
-        } 
+          <ProtectedRoute allowedRoles={ALL_ROLES}>
+            <OrdersPage />
+          </ProtectedRoute>
+        }
       />
 
-      <Route 
-        path="/reports" 
+      <Route
+        path="/delivery"
         element={
-          <PrivateRoute>
-            <RoleBasedRoute allowedRoles={['admin', 'manager']}>
-              <ReportsPage />
-            </RoleBasedRoute>
-          </PrivateRoute>
-        } 
+          <ProtectedRoute allowedRoles={ADMIN_MANAGER_DELIVERY}>
+            <DeliveryPage />
+          </ProtectedRoute>
+        }
       />
 
-      <Route 
-        path="/settings" 
+      <Route
+        path="/reports"
         element={
-          <PrivateRoute>
-            <RoleBasedRoute allowedRoles={['admin']}>
-              <SettingsPage />
-            </RoleBasedRoute>
-          </PrivateRoute>
-        } 
+          <ProtectedRoute allowedRoles={ADMIN_MANAGER}>
+            <ReportsPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute allowedRoles={ADMIN}>
+            <SettingsPage />
+          </ProtectedRoute>
+        }
       />
 
       {/* Redirects */}
