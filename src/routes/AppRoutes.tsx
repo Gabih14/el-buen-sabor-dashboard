@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { useAuth0 } from '@auth0/auth0-react';
+import { useAuth0, GetTokenSilentlyOptions } from '@auth0/auth0-react';
 
 // Pages
 import LoginPage from '../pages/auth/LoginPage';
@@ -15,10 +15,12 @@ import ReportsPage from '../pages/ReportsPage';
 import SettingsPage from '../pages/SettingsPage';
 import { CallbackPage } from '../pages/CallbackPage';
 
-// Components
+// Component
 import { ProtectedRoute } from '../components/auth/ProtectedRoute';
+import { setTokenGetter } from '../api/apiClient';
+import ProductsPage from '../pages/ProductsPage';
 
-// Optional: Define reusable role arrays
+// Opcional: roles definidos como constantes
 const ALL_ROLES = ['admin', 'manager', 'employee', 'delivery'];
 const ADMIN_MANAGER = ['admin', 'manager'];
 const ADMIN = ['admin'];
@@ -33,6 +35,19 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 };
 
 const AppRoutes: React.FC = () => {
+  const { getAccessTokenSilently } = useAuth0();
+
+  // 🔐 Registrar el token getter con configuración válida (Auth0 SDK v2+)
+  useEffect(() => {
+    const options: GetTokenSilentlyOptions = {
+      authorizationParams: {
+        audience: import.meta.env.VITE_AUTH0_AUDIENCE,
+      },
+    };
+
+    setTokenGetter(() => getAccessTokenSilently(options));
+  }, [getAccessTokenSilently]);
+
   return (
     <Routes>
       {/* Public Routes */}
@@ -49,7 +64,6 @@ const AppRoutes: React.FC = () => {
           </ProtectedRoute>
         }
       />
-
       <Route
         path="/customers"
         element={
@@ -58,7 +72,6 @@ const AppRoutes: React.FC = () => {
           </ProtectedRoute>
         }
       />
-
       <Route
         path="/employees"
         element={
@@ -67,7 +80,6 @@ const AppRoutes: React.FC = () => {
           </ProtectedRoute>
         }
       />
-
       <Route
         path="/orders"
         element={
@@ -76,7 +88,14 @@ const AppRoutes: React.FC = () => {
           </ProtectedRoute>
         }
       />
-
+      <Route
+        path="/products"
+        element={
+          <ProtectedRoute allowedRoles={ADMIN_MANAGER}>
+            <ProductsPage />
+          </ProtectedRoute>
+        }
+      />
       <Route
         path="/delivery"
         element={
@@ -85,7 +104,6 @@ const AppRoutes: React.FC = () => {
           </ProtectedRoute>
         }
       />
-
       <Route
         path="/reports"
         element={
@@ -94,7 +112,6 @@ const AppRoutes: React.FC = () => {
           </ProtectedRoute>
         }
       />
-
       <Route
         path="/settings"
         element={
@@ -106,8 +123,6 @@ const AppRoutes: React.FC = () => {
 
       {/* Redirects */}
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
-
-      {/* 404 Route */}
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );

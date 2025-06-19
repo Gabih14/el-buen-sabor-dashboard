@@ -41,6 +41,12 @@ const SIDEBAR_ITEMS = [
     allowedRoles: ['admin', 'manager', 'employee', 'delivery'],
   },
   {
+    label: 'Productos',
+    icon: <ShoppingBag size={20} />,
+    path: '/products',
+    allowedRoles: ['admin', 'manager'],
+  },
+  {
     label: 'Delivery',
     icon: <Truck size={20} />,
     path: '/delivery',
@@ -83,10 +89,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile = false, onClose }) => {
 
   const currentUser = isAuthenticated && user
     ? {
-        firstName: user.given_name || user.name?.split(' ')[0] || '',
-        lastName: user.family_name || user.name?.split(' ')[1] || '',
-        role: getRoleFromUser(user),
-      }
+      firstName: user.given_name || user.name?.split(' ')[0] || '',
+      lastName: user.family_name || user.name?.split(' ')[1] || '',
+      role: getRoleFromUser(user),
+    }
     : null;
 
   const filteredItems = SIDEBAR_ITEMS.filter(
@@ -123,10 +129,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile = false, onClose }) => {
               <NavLink
                 to={item.path}
                 className={({ isActive }) =>
-                  `flex items-center px-4 py-2 rounded-md transition-colors ${
-                    isActive
-                      ? 'bg-red-50 text-red-600'
-                      : 'hover:bg-gray-100 text-gray-700'
+                  `flex items-center px-4 py-2 rounded-md transition-colors ${isActive
+                    ? 'bg-red-50 text-red-600'
+                    : 'hover:bg-gray-100 text-gray-700'
                   }`
                 }
                 onClick={isMobile ? onClose : undefined}
