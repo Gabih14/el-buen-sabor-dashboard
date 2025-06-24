@@ -14,13 +14,14 @@ import DeliveryPage from '../pages/DeliveryPage';
 import ReportsPage from '../pages/ReportsPage';
 import SettingsPage from '../pages/SettingsPage';
 import { CallbackPage } from '../pages/CallbackPage';
+import ProductsPage from '../pages/ProductsPage';
+import ProductCategoriesPage from '../pages/ProductCategoriesPage';
 
 // Component
 import { ProtectedRoute } from '../components/auth/ProtectedRoute';
 import { setTokenGetter } from '../api/apiClient';
-import ProductsPage from '../pages/ProductsPage';
 
-// Opcional: roles definidos como constantes
+// Roles
 const ALL_ROLES = ['admin', 'manager', 'employee', 'delivery'];
 const ADMIN_MANAGER = ['admin', 'manager'];
 const ADMIN = ['admin'];
@@ -37,14 +38,12 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 const AppRoutes: React.FC = () => {
   const { getAccessTokenSilently } = useAuth0();
 
-  // 🔐 Registrar el token getter con configuración válida (Auth0 SDK v2+)
   useEffect(() => {
     const options: GetTokenSilentlyOptions = {
       authorizationParams: {
         audience: import.meta.env.VITE_AUTH0_AUDIENCE,
       },
     };
-
     setTokenGetter(() => getAccessTokenSilently(options));
   }, [getAccessTokenSilently]);
 
@@ -93,6 +92,14 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute allowedRoles={ADMIN_MANAGER}>
             <ProductsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/products/categories" 
+        element={
+          <ProtectedRoute allowedRoles={ADMIN_MANAGER}>
+            <ProductCategoriesPage />
           </ProtectedRoute>
         }
       />
