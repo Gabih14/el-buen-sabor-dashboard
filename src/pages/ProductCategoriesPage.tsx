@@ -5,15 +5,18 @@ import Button from '../components/ui/Button';
 import { Search, Plus, Edit, Trash2, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { ProductCategory, Subcategoria } from '../types/product-category';
-/* import CategoryModal from '../components/products/CategoryModal';*/
 import apiClient from '../api/apiClient';
-
-
+// 👇 Importa el modal
+import SubcategoryModal from '../components/products/SubcategoryModal';
 
 const ProductCategoriesPage: React.FC = () => {
   const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
+
+  // 👇 Estado para el modal
+  const [showSubcategoryModal, setShowSubcategoryModal] = useState(false);
+  const [selectedParentCategory, setSelectedParentCategory] = useState<number | null>(null);
 
   useEffect(() => {
     fetchCategories();
@@ -67,8 +70,21 @@ const ProductCategoriesPage: React.FC = () => {
   };
 
   const handleAddNew = () => {
-    console.log('Agregar nueva subcategoría');
-    // Aquí iría la lógica para agregar nueva subcategoría
+    setSelectedParentCategory(categories.length > 0 ? categories[0].id : null);
+    setShowSubcategoryModal(true);
+  };
+
+  // 👇 Guardar subcategoría (puedes ajustar la lógica según tu backend)
+  const handleSaveSubcategory = async (
+    data: { denominacion: string; esInsumo: boolean },
+    parentCategoryId: number
+  ) => {
+    try {
+      await apiClient.post(`/categoria/subcategoria/${parentCategoryId}`, data);
+      fetchCategories();
+    } catch (err) {
+      console.error('Error al crear subcategoría', err);
+    }
   };
 
   if (loading) {
@@ -190,6 +206,16 @@ const ProductCategoriesPage: React.FC = () => {
       <div className="mt-4 text-sm text-gray-600">
         Mostrando {filteredCategories.length} de {allSubcategories.length} subcategorías
       </div>
+
+      {/* 👇 Modal para agregar subcategoría */}
+      <SubcategoryModal
+        isOpen={showSubcategoryModal}
+        onClose={() => setShowSubcategoryModal(false)}
+        onSave={handleSaveSubcategory}
+        categories={categories}
+        selectedParentCategory={selectedParentCategory}
+        setSelectedParentCategory={setSelectedParentCategory}
+      />
     </Layout>
   );
 };
