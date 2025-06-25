@@ -1,9 +1,17 @@
 export interface ProductCategory {
-  id: string;
+  id: number;
+  deleted: boolean;
   denominacion: string;
-  status: 'active' | 'inactive';
-  createdAt: Date;
-  updatedAt: Date;
-  // Legacy field for compatibility
-  name?: string;
+  esInsumo: boolean;
+  subcategorias: Subcategoria[];
+  sucursales: any[];
+}
+
+export interface Subcategoria {
+  id: number;
+  deleted: boolean;
+  denominacion: string;
+  esInsumo: boolean;
+  subcategorias: Subcategoria[];
+  sucursales: any[];
 }
