@@ -75,10 +75,18 @@ const ProductCategoriesPage: React.FC = () => {
   };
 
 
-  const handleDelete = (id: number) => {
-    console.log('Eliminar subcategoría:', id);
-    // Aquí iría la lógica para eliminar
-  };
+  const handleDelete = async (id: number) => {
+  const confirm = window.confirm("¿Estás seguro de que deseas eliminar esta subcategoría?");
+  if (!confirm) return;
+
+  try {
+    await apiClient.delete(`/categoria/subcategoria/eliminar/${id}`);
+    await fetchCategories();
+  } catch (err) {
+    console.error('Error al eliminar subcategoría:', err);
+  }
+};
+
 
   const handleAddNew = () => {
     setSelectedParentCategory(categories.length > 0 ? categories[0].id : null);
