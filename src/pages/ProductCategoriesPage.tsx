@@ -14,9 +14,10 @@ const ProductCategoriesPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
 
-  // 👇 Estado para el modal
+  // Estado para el modal
   const [showSubcategoryModal, setShowSubcategoryModal] = useState(false);
   const [selectedParentCategory, setSelectedParentCategory] = useState<number | null>(null);
+  const [editingSubcategory, setEditingSubcategory] = useState<Subcategoria | null>(null);
 
   useEffect(() => {
     fetchCategories();
@@ -60,9 +61,19 @@ const ProductCategoriesPage: React.FC = () => {
   );
 
   const handleEdit = (id: number) => {
-    console.log('Editar subcategoría:', id);
-    // Aquí iría la lógica para editar
+    const found = allSubcategories.find((sub) => sub.id === id);
+    if (found) {
+      setEditingSubcategory(found);
+      const parent = categories.find((cat) =>
+        cat.subcategorias.some((s) => s.id === id)
+      );
+      if (parent) {
+        setSelectedParentCategory(parent.id);
+      }
+      setShowSubcategoryModal(true);
+    }
   };
+
 
   const handleDelete = (id: number) => {
     console.log('Eliminar subcategoría:', id);
@@ -74,18 +85,31 @@ const ProductCategoriesPage: React.FC = () => {
     setShowSubcategoryModal(true);
   };
 
-  // 👇 Guardar subcategoría (puedes ajustar la lógica según tu backend)
+  //  Guardar subcategoría (puedes ajustar la lógica según tu backend)
   const handleSaveSubcategory = async (
-    data: { denominacion: string; esInsumo: boolean },
+    data: { id?: number; denominacion: string; esInsumo: boolean },
     parentCategoryId: number
   ) => {
     try {
-      await apiClient.post(`/categoria/subcategoria/${parentCategoryId}`, data);
+      if (data.id) {
+        // Si es edición
+        await apiClient.post(`/categoria/subcategoria/actualizar/${data.id}`, {
+          denominacion: data.denominacion,
+          esInsumo: data.esInsumo,
+        });
+      } else {
+        // Nueva subcategoría
+        await apiClient.post(`/categoria/subcategoria/${parentCategoryId}`, data);
+      }
       fetchCategories();
     } catch (err) {
-      console.error('Error al crear subcategoría', err);
+      console.error('Error al guardar subcategoría', err);
+    } finally {
+      setEditingSubcategory(null);
+      setShowSubcategoryModal(false);
     }
   };
+
 
   if (loading) {
     return (
@@ -210,12 +234,25 @@ const ProductCategoriesPage: React.FC = () => {
       {/* 👇 Modal para agregar subcategoría */}
       <SubcategoryModal
         isOpen={showSubcategoryModal}
-        onClose={() => setShowSubcategoryModal(false)}
+        onClose={() => {
+          setShowSubcategoryModal(false);
+          setEditingSubcategory(null);
+        }}
         onSave={handleSaveSubcategory}
         categories={categories}
         selectedParentCategory={selectedParentCategory}
         setSelectedParentCategory={setSelectedParentCategory}
+        initialData={
+          editingSubcategory
+            ? {
+              id: editingSubcategory.id,
+              denominacion: editingSubcategory.denominacion,
+              categoriaId: selectedParentCategory || 0,
+            }
+            : undefined
+        }
       />
+
     </Layout>
   );
 };

@@ -6,10 +6,14 @@ import Button from '../ui/Button';
 interface SubcategoryModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: { denominacion: string; esInsumo: boolean }, parentCategoryId: number) => void;
+  onSave: (
+    data: { denominacion: string; esInsumo: boolean; id?: number },
+    parentCategoryId: number
+  ) => void;
   categories: Array<{ id: number; denominacion: string }>;
   selectedParentCategory: number | null;
   setSelectedParentCategory: (id: number) => void;
+  initialData?: { id: number; denominacion: string; categoriaId: number };
 }
 
 const SubcategoryModal: React.FC<SubcategoryModalProps> = ({
@@ -19,14 +23,18 @@ const SubcategoryModal: React.FC<SubcategoryModalProps> = ({
   categories,
   selectedParentCategory,
   setSelectedParentCategory,
+  initialData,
 }) => {
-  const [form, setForm] = useState<{ denominacion: string }>({
-    denominacion: '',
-  });
+  const [form, setForm] = useState<{ denominacion: string }>({ denominacion: '' });
 
   useEffect(() => {
-    setForm({ denominacion: '' });
-  }, [isOpen]);
+    if (initialData) {
+      setForm({ denominacion: initialData.denominacion });
+      setSelectedParentCategory(initialData.categoriaId);
+    } else {
+      setForm({ denominacion: '' });
+    }
+  }, [initialData, setSelectedParentCategory]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -42,10 +50,14 @@ const SubcategoryModal: React.FC<SubcategoryModalProps> = ({
 
   const handleSubmit = () => {
     if (!form.denominacion || selectedParentCategory === null) return;
-    onSave(
-      { denominacion: form.denominacion, esInsumo: false },
-      selectedParentCategory
-    );
+
+    const subcategoryPayload = {
+      denominacion: form.denominacion,
+      esInsumo: false,
+      ...(initialData?.id && { id: initialData.id }),
+    };
+
+    onSave(subcategoryPayload, selectedParentCategory);
     onClose();
   };
 
@@ -55,7 +67,7 @@ const SubcategoryModal: React.FC<SubcategoryModalProps> = ({
         <div className="fixed inset-0 bg-black opacity-30" aria-hidden="true" />
         <div className="bg-white rounded-lg p-6 z-50 max-w-md w-full mx-auto shadow-lg relative">
           <Dialog.Title className="text-lg font-bold mb-4">
-            Nueva Subcategoría
+            {initialData ? 'Editar Subcategoría' : 'Nueva Subcategoría'}
           </Dialog.Title>
 
           <div className="space-y-4">
@@ -73,6 +85,7 @@ const SubcategoryModal: React.FC<SubcategoryModalProps> = ({
                 ))}
               </select>
             </label>
+
             <Input
               label="Denominación"
               name="denominacion"
@@ -87,7 +100,7 @@ const SubcategoryModal: React.FC<SubcategoryModalProps> = ({
               Cancelar
             </Button>
             <Button onClick={handleSubmit}>
-              Crear
+              {initialData ? 'Guardar Cambios' : 'Crear'}
             </Button>
           </div>
         </div>
