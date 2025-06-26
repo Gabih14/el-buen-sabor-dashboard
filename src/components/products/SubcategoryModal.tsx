@@ -20,20 +20,19 @@ const SubcategoryModal: React.FC<SubcategoryModalProps> = ({
   selectedParentCategory,
   setSelectedParentCategory,
 }) => {
-  const [form, setForm] = useState<{ denominacion: string; esInsumo: boolean }>({
+  const [form, setForm] = useState<{ denominacion: string }>({
     denominacion: '',
-    esInsumo: false,
   });
 
   useEffect(() => {
-    setForm({ denominacion: '', esInsumo: false });
+    setForm({ denominacion: '' });
   }, [isOpen]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value, type, checked } = e.target as HTMLInputElement;
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
     setForm((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value,
+      [name]: value,
     }));
   };
 
@@ -44,7 +43,7 @@ const SubcategoryModal: React.FC<SubcategoryModalProps> = ({
   const handleSubmit = () => {
     if (!form.denominacion || selectedParentCategory === null) return;
     onSave(
-      { denominacion: form.denominacion, esInsumo: form.esInsumo },
+      { denominacion: form.denominacion, esInsumo: false },
       selectedParentCategory
     );
     onClose();
@@ -81,18 +80,6 @@ const SubcategoryModal: React.FC<SubcategoryModalProps> = ({
               onChange={handleChange}
               required
             />
-            <div className="flex items-center gap-2">
-              <input
-                id="esInsumo"
-                name="esInsumo"
-                type="checkbox"
-                checked={form.esInsumo}
-                onChange={handleChange}
-              />
-              <label htmlFor="esInsumo" className="text-sm text-gray-700">
-                ¿Es insumo?
-              </label>
-            </div>
           </div>
 
           <div className="mt-6 flex justify-end gap-2">
