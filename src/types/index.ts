@@ -1,3 +1,4 @@
+import { Supply } from './supply';
 export interface User {
   id: string;
   username: string;
@@ -72,20 +73,7 @@ export interface ProductDetail {
   cantidad: number;
   item: Supply | MenuItem;
 }
-export interface Supply {
-  id: string;
-  denominacion: string;
-  categoriaId: string;
-  categoria?: {
-    id: string;
-    denominacion: string;
-  };
-  unidadMedida: string;
-  precioCompra: number;
-  stockActual: number;
-  stockMinimo?: number;
-  status?: 'active' | 'inactive';
-}
+
 export interface MenuItem {
   id: string;
   denominacion: string;
