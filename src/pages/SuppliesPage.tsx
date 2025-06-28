@@ -6,7 +6,7 @@ import Badge from '../components/ui/Badge';
 import { Search, Plus, Edit, Trash2, ListFilter, AlertTriangle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { Supply } from '../types/supply';
-/* import SupplyModal from '../components/supplies/SupplyModal'; */
+import SupplyModal from '../components/supplies/SupplyModal';
 import apiClient from '../api/apiClient';
 
 const fetchSupplies = async (): Promise<Supply[]> => {
@@ -39,10 +39,13 @@ const SuppliesPage: React.FC = () => {
     }
   };
 
-  const categories = Array.from(
-    new Set(
-      supplies.map(supply => supply.categoria?.denominacion).filter(Boolean) as string[]
-    )
+  const categoriasUnicas = Array.from(
+    new Map(
+      supplies
+        .map(s => s.categoria)
+        .filter(Boolean)
+        .map(c => [c!.id, c!])
+    ).values()
   );
 
   const filteredSupplies = supplies.filter(supply => {
@@ -140,14 +143,13 @@ const SuppliesPage: React.FC = () => {
               onChange={(e) => setSelectedCategory(e.target.value)}
             >
               <option value="">Todas las categorías</option>
-              {categories.map(category => (
-                <option key={category} value={category}>{category}</option>
+              {categoriasUnicas.map(category => (
+                <option key={category.id} value={category.denominacion}>{category.denominacion}</option>
               ))}
             </select>
           </div>
         </div>
       </Card>
-
       <div className="bg-white shadow-md rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
@@ -235,7 +237,7 @@ const SuppliesPage: React.FC = () => {
         </div>
       </div>
 
-      {/* <SupplyModal
+     <SupplyModal
         isOpen={isModalOpen}
         onClose={() => {
           setIsModalOpen(false);
@@ -243,8 +245,8 @@ const SuppliesPage: React.FC = () => {
         }}
         onSave={handleSave}
         supply={selectedSupply}
-        categories={categories}
-      /> */}
+        categories={categoriasUnicas}
+      />
     </Layout>
   );
 };
