@@ -66,7 +66,7 @@ const SuppliesPage: React.FC = () => {
 
   const handleSave = (supplyData: Partial<Supply>) => {
     if (selectedSupply) {
-      setSupplies(supplies.map(s => 
+      setSupplies(supplies.map(s =>
         s.id === selectedSupply.id ? { ...s, ...supplyData } : s
       ));
     } else {
@@ -128,16 +128,16 @@ const SuppliesPage: React.FC = () => {
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Search size={18} className="text-gray-400" />
             </div>
-            <input 
-              type="text" 
-              placeholder="Buscar por nombre de insumo" 
+            <input
+              type="text"
+              placeholder="Buscar por nombre de insumo"
               className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md focus:ring-amber-500 focus:border-amber-500"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
           <div className="flex gap-2">
-            <select 
+            <select
               className="px-4 py-2 border border-gray-300 rounded-md focus:ring-amber-500 focus:border-amber-500"
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
@@ -189,11 +189,10 @@ const SuppliesPage: React.FC = () => {
                         {supply.stockActual} / {supply.stockMaximo} {typeof supply.unidadMedida === 'string' ? supply.unidadMedida : supply.unidadMedida?.denominacion}
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
-                        <div 
-                          className={`h-2 rounded-full ${
-                            stockStatus === 'critical' ? 'bg-red-500' :
-                            stockStatus === 'low' ? 'bg-amber-500' : 'bg-emerald-500'
-                          }`}
+                        <div
+                          className={`h-2 rounded-full ${stockStatus === 'critical' ? 'bg-red-500' :
+                              stockStatus === 'low' ? 'bg-amber-500' : 'bg-emerald-500'
+                            }`}
                           style={{ width: `${Math.min(stockPercentage, 100)}%` }}
                         />
                       </div>
@@ -206,10 +205,10 @@ const SuppliesPage: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-center">
                       <div className="flex justify-center space-x-2">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          icon={<Edit size={16} />} 
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          icon={<Edit size={16} />}
                           onClick={() => handleEdit(supply)}
                           aria-label="Editar insumo"
                         />
@@ -219,10 +218,10 @@ const SuppliesPage: React.FC = () => {
                             <Button variant="outline" size="sm" onClick={() => setShowDeleteConfirm(null)}>Cancelar</Button>
                           </div>
                         ) : (
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            icon={<Trash2 size={16} />} 
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            icon={<Trash2 size={16} />}
                             onClick={() => setShowDeleteConfirm(supply.id)}
                             aria-label="Eliminar insumo"
                           />
@@ -237,16 +236,17 @@ const SuppliesPage: React.FC = () => {
         </div>
       </div>
 
-     <SupplyModal
+      <SupplyModal
         isOpen={isModalOpen}
         onClose={() => {
           setIsModalOpen(false);
           setSelectedSupply(undefined);
         }}
-        onSave={handleSave}
+        onSaved={loadSupplies}
         supply={selectedSupply}
         categories={categoriasUnicas}
       />
+
     </Layout>
   );
 };
