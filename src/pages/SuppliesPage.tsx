@@ -59,32 +59,19 @@ const SuppliesPage: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleDelete = (supplyId: number) => {
-    setSupplies(supplies.filter(s => s.id !== supplyId));
+  const handleDelete = async (supplyId: number) => {
+  try {
+    await apiClient.delete(`/articuloInsumo/${supplyId}`);
+    await loadSupplies();
     setShowDeleteConfirm(null);
-  };
+  } catch (error) {
+    console.error('Error eliminando insumo:', error);
+    alert('Hubo un error al eliminar el insumo.');
+  }
+};
 
-  const handleSave = (supplyData: Partial<Supply>) => {
-    if (selectedSupply) {
-      setSupplies(supplies.map(s =>
-        s.id === selectedSupply.id ? { ...s, ...supplyData } : s
-      ));
-    } else {
-      const newSupply: Supply = {
-        id: Date.now(),
-        denominacion: supplyData.denominacion || '',
-        categoria: supplyData.categoria!,
-        unidadMedida: supplyData.unidadMedida || '',
-        precioCompra: supplyData.precioCompra || 0,
-        precioVenta: supplyData.precioVenta || 0,
-        stockActual: supplyData.stockActual || 0,
-        stockMinimo: supplyData.stockMinimo || 0,
-        stockMaximo: supplyData.stockMaximo || 100,
-        esParaElaborar: supplyData.esParaElaborar || false
-      };
-      setSupplies([...supplies, newSupply]);
-    }
-  };
+
+ 
 
   const getStockStatus = (supply: Supply) => {
     if (supply.stockActual <= (supply.stockMinimo ?? 0)) return 'critical';
