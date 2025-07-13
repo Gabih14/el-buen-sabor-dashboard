@@ -71,38 +71,14 @@ const SupplyModal: React.FC<SupplyModalProps> = ({
 
   useEffect(() => {
     if (!supply) return;
+    if (!unitOptions.length) return;
 
-    const cargarUnidad = () => {
-      if (!unitOptions.length) return;
+    const unidad = typeof supply.unidadMedida === 'string'
+      ? unitOptions.find(u => u.denominacion === supply.unidadMedida)
+      : unitOptions.find(u => u.id === (supply.unidadMedida as UnidadMedida).id);
 
-      let unidad: UnidadMedida | undefined;
-
-      // Caso 1: unidad es string ("Gramos")
-      if (typeof supply.unidadMedida === 'string') {
-        unidad = unitOptions.find(u => u.denominacion === supply.unidadMedida);
-      }
-
-      // Caso 2: unidad es objeto con id
-      if (
-        typeof supply.unidadMedida === 'object' &&
-        supply.unidadMedida !== null &&
-        'id' in supply.unidadMedida
-      ) {
-        unidad = unitOptions.find(
-          u => u.id === (supply.unidadMedida as UnidadMedida).id
-        );
-      }
-
-
-      setFormData({
-        ...supply,
-        unidadMedida: unidad ?? undefined
-      });
-    };
-
-    cargarUnidad();
+    setFormData({ ...supply, unidadMedida: unidad ?? undefined });
   }, [supply, unitOptions]);
-
 
   if (!isOpen) return null;
 
@@ -118,10 +94,20 @@ const SupplyModal: React.FC<SupplyModalProps> = ({
       formData.precioVenta = formData.precioCompra;
     }
 
+    const categoriaId = formData.esParaElaborar
+      ? categories.find(c => c.esInsumo && c.denominacion.toLowerCase() === 'insumos')?.id
+      : formData.categoria?.id;
+
+    if (!categoriaId) {
+      console.log('Categorías disponibles:', categories);
+      alert('No se encontró la categoría "Insumos".');
+      return;
+    }
+
     const payload = {
       type: 'INSUMO',
       denominacion: formData.denominacion,
-      categoria: { id: formData.categoria!.id },
+      categoria: { id: categoriaId },
       unidadMedida: { id: (formData.unidadMedida as UnidadMedida).id },
       precioCompra: formData.precioCompra,
       precioVenta: formData.precioVenta,
@@ -134,8 +120,11 @@ const SupplyModal: React.FC<SupplyModalProps> = ({
     try {
       if (supply?.id) {
         await apiClient.put(`/articuloInsumo/modificar/${supply.id}`, payload);
+        console.log(payload)
+        console.log('Insumo actualizado:', supply.id);
       } else {
         await apiClient.post('/articuloInsumo/crear', payload);
+        console.log('Nuevo insumo creado');
       }
 
       onSaved();
@@ -159,8 +148,6 @@ const SupplyModal: React.FC<SupplyModalProps> = ({
 
         <form onSubmit={handleSubmit} className="p-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-            {/* Es para elaborar */}
             <div className="md:col-span-2 flex items-center gap-2">
               <input
                 id="esParaElaborar"
@@ -186,27 +173,29 @@ const SupplyModal: React.FC<SupplyModalProps> = ({
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
-              <select
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-amber-500 focus:border-amber-500"
-                value={formData.categoria?.id || ''}
-                onChange={(e) => {
-                  const selected = categories.find(
-                    (cat) => cat.id === Number(e.target.value)
-                  );
-                  setFormData({ ...formData, categoria: selected });
-                }}
-                required
-              >
-                <option value="">Seleccionar categoría</option>
-                {categories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.denominacion}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {!formData.esParaElaborar && (
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
+                <select
+                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-amber-500 focus:border-amber-500"
+                  value={formData.categoria?.id || ''}
+                  onChange={(e) => {
+                    const selected = categories.find(cat => cat.id === Number(e.target.value));
+                    setFormData({ ...formData, categoria: selected });
+                  }}
+                  required
+                >
+                  <option value="">Seleccionar categoría</option>
+                  {categories
+                    .filter(c => !c.esInsumo) // solo subcategorías
+                    .map(category => (
+                      <option key={category.id} value={category.id}>
+                        {category.denominacion}
+                      </option>
+                    ))}
+                </select>
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Unidad de medida</label>
@@ -312,12 +301,8 @@ const SupplyModal: React.FC<SupplyModalProps> = ({
           </div>
 
           <div className="mt-6 flex justify-end space-x-2">
-            <Button variant="outline" onClick={onClose}>
-              Cancelar
-            </Button>
-            <Button variant="primary" type="submit" disabled={ventaInvalida}>
-              Guardar
-            </Button>
+            <Button variant="outline" onClick={onClose}>Cancelar</Button>
+            <Button variant="primary" type="submit" disabled={ventaInvalida}>Guardar</Button>
           </div>
         </form>
       </div>

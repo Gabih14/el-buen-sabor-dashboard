@@ -9,9 +9,42 @@ import type { Supply } from '../types/supply';
 import SupplyModal from '../components/supplies/SupplyModal';
 import apiClient from '../api/apiClient';
 
+interface Category {
+  id: number;
+  denominacion: string;
+  esInsumo: boolean;
+  subcategorias: Category[];
+}
+
 const fetchSupplies = async (): Promise<Supply[]> => {
   const res = await apiClient.get('/articuloInsumo/listar');
   return res.data;
+};
+
+const flattenCategories = (categoriesFromApi: Category[]): Category[] => {
+  const flattened: Category[] = [];
+
+  for (const cat of categoriesFromApi) {
+    for (const sub of cat.subcategorias || []) {
+      flattened.push({
+        id: sub.id,
+        denominacion: sub.denominacion,
+        esInsumo: false,
+        subcategorias: [],
+      });
+    }
+
+    if (cat.esInsumo) {
+      flattened.push({
+        id: cat.id,
+        denominacion: cat.denominacion,
+        esInsumo: true,
+        subcategorias: [],
+      });
+    }
+  }
+
+  return flattened;
 };
 
 const SuppliesPage: React.FC = () => {
@@ -23,8 +56,12 @@ const SuppliesPage: React.FC = () => {
   const [selectedSupply, setSelectedSupply] = useState<Supply | undefined>();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<number | null>(null);
 
+  const [rawCategories, setRawCategories] = useState<Category[]>([]);
+  const [flatCategories, setFlatCategories] = useState<Category[]>([]);
+
   useEffect(() => {
     loadSupplies();
+    fetchCategories();
   }, []);
 
   const loadSupplies = async () => {
@@ -36,6 +73,19 @@ const SuppliesPage: React.FC = () => {
       console.error('Error loading supplies:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const res = await apiClient.get('/categoria/listar');
+      const data = res.data;
+      setRawCategories(data);
+
+      const flattened = flattenCategories(data);
+      setFlatCategories(flattened);
+    } catch (error) {
+      console.error('Error cargando categorías:', error);
     }
   };
 
@@ -60,18 +110,15 @@ const SuppliesPage: React.FC = () => {
   };
 
   const handleDelete = async (supplyId: number) => {
-  try {
-    await apiClient.delete(`/articuloInsumo/${supplyId}`);
-    await loadSupplies();
-    setShowDeleteConfirm(null);
-  } catch (error) {
-    console.error('Error eliminando insumo:', error);
-    alert('Hubo un error al eliminar el insumo.');
-  }
-};
-
-
- 
+    try {
+      await apiClient.delete(`/articuloInsumo/${supplyId}`);
+      await loadSupplies();
+      setShowDeleteConfirm(null);
+    } catch (error) {
+      console.error('Error eliminando insumo:', error);
+      alert('Hubo un error al eliminar el insumo.');
+    }
+  };
 
   const getStockStatus = (supply: Supply) => {
     if (supply.stockActual <= (supply.stockMinimo ?? 0)) return 'critical';
@@ -91,6 +138,7 @@ const SuppliesPage: React.FC = () => {
 
   return (
     <Layout>
+      {/* Encabezado */}
       <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-serif font-bold text-gray-800">Insumos</h1>
@@ -109,6 +157,7 @@ const SuppliesPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Filtros */}
       <Card className="mb-6">
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="relative flex-grow">
@@ -137,6 +186,8 @@ const SuppliesPage: React.FC = () => {
           </div>
         </div>
       </Card>
+
+      {/* Tabla */}
       <div className="bg-white shadow-md rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
@@ -231,9 +282,8 @@ const SuppliesPage: React.FC = () => {
         }}
         onSaved={loadSupplies}
         supply={selectedSupply}
-        categories={categoriasUnicas}
+        categories={flatCategories}
       />
-
     </Layout>
   );
 };
