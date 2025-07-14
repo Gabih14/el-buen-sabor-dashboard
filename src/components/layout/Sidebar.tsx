@@ -11,7 +11,8 @@ import {
   Settings,
   Coffee,
   X,
-  LogOut
+  LogOut,
+  Package
 } from 'lucide-react';
 import Button from '../ui/Button';
 
@@ -44,6 +45,12 @@ const SIDEBAR_ITEMS = [
     label: 'Productos',
     icon: <ShoppingBag size={20} />,
     path: '/products',
+    allowedRoles: ['admin', 'manager'],
+  },
+  {
+    label: 'Insumos', // 👈 NUEVO
+    icon: <Package size={20} />,
+    path: '/supplies',
     allowedRoles: ['admin', 'manager'],
   },
   {
