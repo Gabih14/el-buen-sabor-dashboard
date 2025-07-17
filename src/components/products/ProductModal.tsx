@@ -5,6 +5,7 @@ import { MenuItem } from '../../types/menuItem';
 import { Supply } from '../../types/supply';
 import { X, Plus, Trash2 } from 'lucide-react';
 import { FlatCategory } from '../../api/categories';
+import { fetchSupplies } from '../../api/supplies';
 
 
 interface ProductModalProps {
@@ -15,38 +16,7 @@ interface ProductModalProps {
   categories: FlatCategory[];
 }
 
-const mockSupplies: Supply[] = [
-  {
-    id: 1,
-    denominacion: 'Harina',
-    categoria: { id: 1, denominacion: 'Harinas', esInsumo: true },
-    unidadMedida: 'Gramos',
-    precioCompra: 50,
-    precioVenta: 0,
-    stockActual: 100,
-    esParaElaborar: true,
-  },
-  {
-    id: 2,
-    denominacion: 'Manteca',
-    categoria: { id: 1, denominacion: 'Lácteos', esInsumo: true },
-    unidadMedida: 'Gramos',
-    precioCompra: 80,
-    precioVenta: 0,
-    stockActual: 50,
-    esParaElaborar: true,
-  },
-  {
-    id: 3,
-    denominacion: 'Queso',
-    categoria: { id: 2, denominacion: 'Lácteos', esInsumo: true },
-    unidadMedida: { id: 10, denominacion: 'Gramos' },
-    precioCompra: 120,
-    precioVenta: 0,
-    stockActual: 200,
-    esParaElaborar: true,
-  },
-];
+
 
 // Función auxiliar para mostrar unidad de medida como texto
 const getUnidadLabel = (unidad: string | { id: number; denominacion: string }) =>
@@ -69,8 +39,23 @@ const ProductModal: React.FC<ProductModalProps> = ({
     detalles: [],
     imagenes: [],
   });
+  const [supplies, setSupplies] = useState<Supply[]>([]);
 
   const [imageFile, setImageFile] = useState<File | null>(null);
+  useEffect(() => {
+    const loadSupplies = async () => {
+      try {
+        const data = await fetchSupplies();
+        const filtered = data.filter((s) => s.esParaElaborar === true);
+        setSupplies(filtered);
+      } catch (error) {
+        console.error('Error al cargar insumos:', error);
+      }
+    };
+
+    loadSupplies();
+  }, []);
+
 
   useEffect(() => {
     if (product) {
@@ -92,61 +77,63 @@ const ProductModal: React.FC<ProductModalProps> = ({
 
   if (!isOpen) return null;
 
- const handleSubmit = (e: React.FormEvent) => {
-  e.preventDefault();
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
 
-  // Validar campos obligatorios
-  if (
-    !formData.denominacion?.trim() ||
-    !formData.descripcion?.trim() ||
-    !formData.precioVenta ||
-    !formData.categoriaId
-  ) {
-    console.warn('Completa todos los campos obligatorios');
-    alert('Completa todos los campos obligatorios');
-    return;
-  }
+    // Validar campos obligatorios
+    if (
+      !formData.denominacion?.trim() ||
+      !formData.descripcion?.trim() ||
+      !formData.precioVenta ||
+      !formData.categoriaId
+    ) {
+      console.warn('Completa todos los campos obligatorios');
+      alert('Completa todos los campos obligatorios');
+      return;
+    }
 
-  // Verificar que la categoría seleccionada exista
-  const selectedCategory = categories.find(
-    (cat) => cat.id.toString() === formData.categoriaId
-  );
+    // Verificar que la categoría seleccionada exista
+    const selectedCategory = categories.find(
+      (cat) => cat.id.toString() === formData.categoriaId
+    );
 
-  if (!selectedCategory) {
-    console.warn('La categoría seleccionada no es válida');
-    alert('Selecciona una categoría válida');
-    return;
-  }
+    if (!selectedCategory) {
+      console.warn('La categoría seleccionada no es válida');
+      alert('Selecciona una categoría válida');
+      return;
+    }
 
-  // Asignar el objeto categoría completo
-  const updatedFormData = {
-    ...formData,
-    categoria: {
-      id: selectedCategory.id.toString(),
-      denominacion: selectedCategory.denominacion,
-    },
+    // Asignar el objeto categoría completo
+    const updatedFormData = {
+      ...formData,
+      categoria: {
+        id: selectedCategory.id.toString(),
+        denominacion: selectedCategory.denominacion,
+      },
+    };
+
+    // Asignar imagen si se cargó una
+    if (imageFile) {
+      updatedFormData.imagenes = [URL.createObjectURL(imageFile)];
+    }
+
+    onSave(updatedFormData);
+    onClose();
   };
 
-  // Asignar imagen si se cargó una
-  if (imageFile) {
-    updatedFormData.imagenes = [URL.createObjectURL(imageFile)];
-  }
-
-  onSave(updatedFormData);
-  onClose();
-};
-
   const addIngredient = () => {
+    if (supplies.length === 0) return;
     const newDetail = {
       tipo: 'INSUMO' as const,
       cantidad: 0,
-      item: mockSupplies[0],
+      item: supplies[0],
     };
     setFormData((prev) => ({
       ...prev,
       detalles: [...(prev.detalles || []), newDetail],
     }));
   };
+
 
   const removeIngredient = (index: number) => {
     const newDetalles = [...(formData.detalles || [])];
@@ -213,28 +200,28 @@ const ProductModal: React.FC<ProductModalProps> = ({
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
             <select
-  className="w-full p-2 border rounded-md"
-  value={formData.categoriaId}
-  onChange={(e) => {
-    const selectedId = e.target.value;
-    const selected = categories.find(c => c.id.toString() === selectedId);
-    setFormData({
-      ...formData,
-      categoriaId: selectedId,
-      categoria: selected
-        ? { id: selectedId, denominacion: selected.denominacion }
-        : undefined,
-    });
-  }}
-  required
->
-  <option value="">Seleccionar categoría</option>
-  {categories.map((c) => (
-    <option key={c.id} value={c.id}>
-      {c.denominacion}
-    </option>
-  ))}
-</select>
+              className="w-full p-2 border rounded-md"
+              value={formData.categoriaId}
+              onChange={(e) => {
+                const selectedId = e.target.value;
+                const selected = categories.find(c => c.id.toString() === selectedId);
+                setFormData({
+                  ...formData,
+                  categoriaId: selectedId,
+                  categoria: selected
+                    ? { id: selectedId, denominacion: selected.denominacion }
+                    : undefined,
+                });
+              }}
+              required
+            >
+              <option value="">Seleccionar categoría</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.denominacion}
+                </option>
+              ))}
+            </select>
 
           </div>
 
@@ -271,49 +258,55 @@ const ProductModal: React.FC<ProductModalProps> = ({
                 size="sm"
                 icon={<Plus size={16} />}
                 onClick={addIngredient}
+                disabled={supplies.length === 0}
               >
                 Agregar insumo
               </Button>
             </div>
 
-            {(formData.detalles || []).map((detalle, index) => (
-              <div key={index} className="flex items-center gap-2 mb-2">
-                <select
-                  className="flex-1 p-2 border rounded-md"
-                  value={(detalle.item as Supply).id}
-                  onChange={(e) => {
-                    const selected = mockSupplies.find((s) => s.id === parseInt(e.target.value));
-                    if (selected) updateIngredient(index, 'supply', selected);
-                  }}
-                >
-                  {mockSupplies.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.denominacion} ({getUnidadLabel(s.unidadMedida)}) - stock: {s.stockActual}
-                    </option>
-                  ))}
-                </select>
+            {supplies.length === 0 ? (
+              <p className="text-sm text-red-500 mb-4">No hay insumos disponibles para usar.</p>
+            ) : (
+              (formData.detalles || []).map((detalle, index) => (
+                <div key={index} className="flex items-center gap-2 mb-2">
+                  <select
+                    className="flex-1 p-2 border rounded-md"
+                    value={(detalle.item as Supply).id}
+                    onChange={(e) => {
+                      const selected = supplies.find((s) => s.id === parseInt(e.target.value));
+                      if (selected) updateIngredient(index, 'supply', selected);
+                    }}
+                  >
+                    {supplies.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.denominacion} ({getUnidadLabel(s.unidadMedida)}) - stock: {s.stockActual}
+                      </option>
+                    ))}
+                  </select>
 
-                <input
-                  type="number"
-                  className="w-28 p-2 border rounded-md"
-                  value={detalle.cantidad}
-                  min={0}
-                  onChange={(e) => updateIngredient(index, 'cantidad', parseInt(e.target.value))}
-                  placeholder="Cantidad"
-                />
-                <span className="text-xs text-gray-500">
-                  {getUnidadLabel((detalle.item as Supply).unidadMedida)}
-                </span>
+                  <input
+                    type="number"
+                    className="w-28 p-2 border rounded-md"
+                    value={detalle.cantidad}
+                    min={0}
+                    onChange={(e) => updateIngredient(index, 'cantidad', parseInt(e.target.value))}
+                    placeholder="Cantidad"
+                  />
+                  <span className="text-xs text-gray-500">
+                    {getUnidadLabel((detalle.item as Supply).unidadMedida)}
+                  </span>
 
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  icon={<Trash2 size={16} />}
-                  onClick={() => removeIngredient(index)}
-                />
-              </div>
-            ))}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    icon={<Trash2 size={16} />}
+                    onClick={() => removeIngredient(index)}
+                  />
+                </div>
+              ))
+            )}
           </div>
+
 
           <div className="flex justify-end gap-2 mt-4">
             <Button variant="outline" onClick={onClose}>
