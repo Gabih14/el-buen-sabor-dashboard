@@ -5,9 +5,11 @@ import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import { Search, Plus, Edit, Trash2, ListFilter } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import type { MenuItem } from '../types';
+import type { MenuItem } from '../types/menuItem';
 import ProductModal from '../components/products/ProductModal';
-import apiClient from '../api/apiClient'; // 👈 nuevo
+import apiClient from '../api/apiClient'; 
+import { fetchCategories, FlatCategory } from '../api/categories';
+
 
 const fetchProducts = async (): Promise<MenuItem[]> => {
   const response = await apiClient.get('/articuloManufacturadoDetalle/todos');
@@ -15,6 +17,7 @@ const fetchProducts = async (): Promise<MenuItem[]> => {
 };
 
 const ProductsPage: React.FC = () => {
+  const [categoryOptions, setCategoryOptions] = useState<FlatCategory[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [products, setProducts] = useState<MenuItem[]>([]);
@@ -25,6 +28,7 @@ const ProductsPage: React.FC = () => {
 
   useEffect(() => {
     loadProducts();
+    loadCategories();
   }, []);
 
   const loadProducts = async () => {
@@ -38,7 +42,14 @@ const ProductsPage: React.FC = () => {
       setLoading(false);
     }
   };
-
+const loadCategories = async () => {
+  try {
+    const data = await fetchCategories();
+    setCategoryOptions(data);
+  } catch (error) {
+    console.error('Error al cargar categorías:', error);
+  }
+};
   const categories = Array.from(new Set(products.map(product => product.categoria.denominacion)));
 
   const filteredProducts = products.filter(product => {
@@ -237,7 +248,7 @@ const ProductsPage: React.FC = () => {
         }}
         onSave={handleSave}
         product={selectedProduct}
-        categories={categories}
+        categories={categoryOptions}
       />
     </Layout>
   );

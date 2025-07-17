@@ -1,44 +1,56 @@
 import React, { useEffect, useState } from 'react';
 import Input from '../ui/Input';
 import Button from '../ui/Button';
-import { MenuItem, Supply } from '../../types';
+import { MenuItem } from '../../types/menuItem';
+import { Supply } from '../../types/supply';
 import { X, Plus, Trash2 } from 'lucide-react';
+import { FlatCategory } from '../../api/categories';
+
 
 interface ProductModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (product: Partial<MenuItem>) => void;
   product?: MenuItem;
-  categories: string[];
+  categories: FlatCategory[];
 }
 
-// Mock supplies for the ingredient selector
 const mockSupplies: Supply[] = [
   {
-    id: '1',
+    id: 1,
     denominacion: 'Harina',
-    categoriaId: '1',
+    categoria: { id: 1, denominacion: 'Harinas', esInsumo: true },
     unidadMedida: 'Gramos',
-    precioCompra: 50.0,
-    stockActual: 100
+    precioCompra: 50,
+    precioVenta: 0,
+    stockActual: 100,
+    esParaElaborar: true,
   },
   {
-    id: '2',
+    id: 2,
     denominacion: 'Manteca',
-    categoriaId: '1',
+    categoria: { id: 1, denominacion: 'Lácteos', esInsumo: true },
     unidadMedida: 'Gramos',
-    precioCompra: 80.0,
-    stockActual: 50
+    precioCompra: 80,
+    precioVenta: 0,
+    stockActual: 50,
+    esParaElaborar: true,
   },
   {
-    id: '3',
-    denominacion: 'Queso Mozzarella',
-    categoriaId: '2',
-    unidadMedida: 'Gramos',
-    precioCompra: 120.0,
-    stockActual: 200
-  }
+    id: 3,
+    denominacion: 'Queso',
+    categoria: { id: 2, denominacion: 'Lácteos', esInsumo: true },
+    unidadMedida: { id: 10, denominacion: 'Gramos' },
+    precioCompra: 120,
+    precioVenta: 0,
+    stockActual: 200,
+    esParaElaborar: true,
+  },
 ];
+
+// Función auxiliar para mostrar unidad de medida como texto
+const getUnidadLabel = (unidad: string | { id: number; denominacion: string }) =>
+  typeof unidad === 'string' ? unidad : unidad.denominacion;
 
 const ProductModal: React.FC<ProductModalProps> = ({
   isOpen,
@@ -55,7 +67,10 @@ const ProductModal: React.FC<ProductModalProps> = ({
     tiempoEstimadoMinutos: 0,
     preparacion: '',
     detalles: [],
+    imagenes: [],
   });
+
+  const [imageFile, setImageFile] = useState<File | null>(null);
 
   useEffect(() => {
     if (product) {
@@ -69,14 +84,30 @@ const ProductModal: React.FC<ProductModalProps> = ({
         tiempoEstimadoMinutos: 0,
         preparacion: '',
         detalles: [],
+        imagenes: [],
       });
     }
+    setImageFile(null);
   }, [product]);
 
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (
+      !formData.denominacion ||
+      !formData.descripcion ||
+      !formData.precioVenta ||
+      !formData.categoriaId
+    ) {
+      alert('Completa todos los campos obligatorios');
+      return;
+    }
+
+    if (imageFile) {
+      formData.imagenes = [URL.createObjectURL(imageFile)];
+    }
+
     onSave(formData);
     onClose();
   };
@@ -85,21 +116,18 @@ const ProductModal: React.FC<ProductModalProps> = ({
     const newDetail = {
       tipo: 'INSUMO' as const,
       cantidad: 0,
-      item: mockSupplies[0]
+      item: mockSupplies[0],
     };
-    setFormData({
-      ...formData,
-      detalles: [...(formData.detalles || []), newDetail]
-    });
+    setFormData((prev) => ({
+      ...prev,
+      detalles: [...(prev.detalles || []), newDetail],
+    }));
   };
 
   const removeIngredient = (index: number) => {
     const newDetalles = [...(formData.detalles || [])];
     newDetalles.splice(index, 1);
-    setFormData({
-      ...formData,
-      detalles: newDetalles
-    });
+    setFormData((prev) => ({ ...prev, detalles: newDetalles }));
   };
 
   const updateIngredient = (index: number, field: string, value: any) => {
@@ -107,12 +135,9 @@ const ProductModal: React.FC<ProductModalProps> = ({
     if (field === 'supply') {
       newDetalles[index].item = value;
     } else if (field === 'cantidad') {
-      newDetalles[index].cantidad = value;
+      newDetalles[index].cantidad = Math.max(0, value);
     }
-    setFormData({
-      ...formData,
-      detalles: newDetalles
-    });
+    setFormData((prev) => ({ ...prev, detalles: newDetalles }));
   };
 
   return (
@@ -122,165 +147,151 @@ const ProductModal: React.FC<ProductModalProps> = ({
           <h2 className="text-xl font-serif font-bold text-gray-800">
             {product ? 'Editar Producto' : 'Nuevo Producto'}
           </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
-          >
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
             <X size={24} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="md:col-span-2">
-              <Input
-                label="Nombre del producto"
-                value={formData.denominacion}
-                onChange={(e) => setFormData({ ...formData, denominacion: e.target.value })}
-                required
-              />
-            </div>
+        <form onSubmit={handleSubmit} className="p-4 space-y-6">
+          <Input
+            label="Nombre del producto"
+            value={formData.denominacion}
+            onChange={(e) => setFormData({ ...formData, denominacion: e.target.value })}
+            required
+          />
+          <Input
+            label="Descripción"
+            value={formData.descripcion}
+            onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
+            required
+          />
+          <Input
+            label="Precio de venta"
+            type="number"
+            step="0.01"
+            value={formData.precioVenta}
+            onChange={(e) =>
+              setFormData({ ...formData, precioVenta: parseFloat(e.target.value) })
+            }
+            required
+          />
+          <Input
+            label="Tiempo estimado (min)"
+            type="number"
+            value={formData.tiempoEstimadoMinutos}
+            onChange={(e) =>
+              setFormData({ ...formData, tiempoEstimadoMinutos: parseInt(e.target.value) })
+            }
+            required
+          />
 
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Descripción
-              </label>
-              <textarea
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-amber-500 focus:border-amber-500"
-                rows={3}
-                value={formData.descripcion}
-                onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
-                required
-              />
-            </div>
+          {/* Categoría */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
+            <select
+  className="w-full p-2 border rounded-md"
+  value={formData.categoriaId}
+  onChange={(e) => {
+    const selectedId = e.target.value;
+    const selected = categories.find(c => c.id.toString() === selectedId);
+    setFormData({
+      ...formData,
+      categoriaId: selectedId,
+      categoria: selected
+        ? { id: selectedId, denominacion: selected.denominacion }
+        : undefined,
+    });
+  }}
+  required
+>
+  <option value="">Seleccionar categoría</option>
+  {categories.map((c) => (
+    <option key={c.id} value={c.id}>
+      {c.denominacion}
+    </option>
+  ))}
+</select>
 
-            <div>
-              <Input
-                label="Precio de venta"
-                type="number"
-                step="0.01"
-                value={formData.precioVenta}
-                onChange={(e) => setFormData({ ...formData, precioVenta: parseFloat(e.target.value) })}
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Categoría
-              </label>
-              <select
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-amber-500 focus:border-amber-500"
-                value={formData.categoriaId}
-                onChange={(e) => setFormData({ 
-                  ...formData, 
-                  categoriaId: e.target.value,
-                  categoria: {
-                    id: e.target.value,
-                    denominacion: categories[parseInt(e.target.value) - 1] || ''
-                  }
-                })}
-                required
-              >
-                <option value="">Seleccionar categoría</option>
-                {categories.map((category, index) => (
-                  <option key={index} value={index + 1}>
-                    {category}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <Input
-                label="Tiempo de preparación (minutos)"
-                type="number"
-                value={formData.tiempoEstimadoMinutos}
-                onChange={(e) => setFormData({ ...formData, tiempoEstimadoMinutos: parseInt(e.target.value) })}
-                required
-              />
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Preparación
-              </label>
-              <textarea
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-amber-500 focus:border-amber-500"
-                rows={3}
-                value={formData.preparacion}
-                onChange={(e) => setFormData({ ...formData, preparacion: e.target.value })}
-                placeholder="Describe el proceso de preparación..."
-              />
-            </div>
-
-            <div className="md:col-span-2">
-              <div className="flex justify-between items-center mb-3">
-                <label className="block text-sm font-medium text-gray-700">
-                  Insumos necesarios
-                </label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  icon={<Plus size={16} />}
-                  onClick={addIngredient}
-                >
-                  Agregar insumo
-                </Button>
-              </div>
-              
-              <div className="space-y-3">
-                {formData.detalles?.map((detalle, index) => (
-                  <div key={index} className="flex items-center space-x-3 p-3 border border-gray-200 rounded-md">
-                    <div className="flex-1">
-                      <select
-                        className="w-full p-2 border border-gray-300 rounded-md focus:ring-amber-500 focus:border-amber-500"
-                        value={(detalle.item as Supply).id}
-                        onChange={(e) => {
-                          const supply = mockSupplies.find(s => s.id === e.target.value);
-                          if (supply) updateIngredient(index, 'supply', supply);
-                        }}
-                      >
-                        {mockSupplies.map(supply => (
-                          <option key={supply.id} value={supply.id}>
-                            {supply.denominacion} ({supply.unidadMedida})
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="w-32">
-                      <input
-                        type="number"
-                        className="w-full p-2 border border-gray-300 rounded-md focus:ring-amber-500 focus:border-amber-500"
-                        placeholder="Cantidad"
-                        value={detalle.cantidad}
-                        onChange={(e) => updateIngredient(index, 'cantidad', parseInt(e.target.value))}
-                      />
-                    </div>
-                    <div className="text-sm text-gray-500 w-20">
-                      {(detalle.item as Supply).unidadMedida}
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      icon={<Trash2 size={16} />}
-                      onClick={() => removeIngredient(index)}
-                    />
-                  </div>
-                ))}
-                
-                {(!formData.detalles || formData.detalles.length === 0) && (
-                  <div className="text-center py-8 text-gray-500">
-                    No hay insumos agregados. Haz clic en "Agregar insumo" para comenzar.
-                  </div>
-                )}
-              </div>
-            </div>
           </div>
 
-          <div className="mt-6 flex justify-end space-x-2">
+          {/* Imagen */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Imagen del producto</label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+              className="block w-full text-sm border border-gray-300 rounded-md p-2"
+            />
+          </div>
+
+          {/* Preparación */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Preparación</label>
+            <textarea
+              className="w-full p-2 border rounded-md"
+              rows={3}
+              placeholder="Describe el proceso de preparación..."
+              value={formData.preparacion}
+              onChange={(e) => setFormData({ ...formData, preparacion: e.target.value })}
+            />
+          </div>
+
+          {/* Insumos */}
+          <div>
+            <div className="flex justify-between items-center mb-2">
+              <label className="block text-sm font-medium text-gray-700">Insumos</label>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                icon={<Plus size={16} />}
+                onClick={addIngredient}
+              >
+                Agregar insumo
+              </Button>
+            </div>
+
+            {(formData.detalles || []).map((detalle, index) => (
+              <div key={index} className="flex items-center gap-2 mb-2">
+                <select
+                  className="flex-1 p-2 border rounded-md"
+                  value={(detalle.item as Supply).id}
+                  onChange={(e) => {
+                    const selected = mockSupplies.find((s) => s.id === parseInt(e.target.value));
+                    if (selected) updateIngredient(index, 'supply', selected);
+                  }}
+                >
+                  {mockSupplies.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.denominacion} ({getUnidadLabel(s.unidadMedida)}) - stock: {s.stockActual}
+                    </option>
+                  ))}
+                </select>
+
+                <input
+                  type="number"
+                  className="w-28 p-2 border rounded-md"
+                  value={detalle.cantidad}
+                  min={0}
+                  onChange={(e) => updateIngredient(index, 'cantidad', parseInt(e.target.value))}
+                  placeholder="Cantidad"
+                />
+                <span className="text-xs text-gray-500">
+                  {getUnidadLabel((detalle.item as Supply).unidadMedida)}
+                </span>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  icon={<Trash2 size={16} />}
+                  onClick={() => removeIngredient(index)}
+                />
+              </div>
+            ))}
+          </div>
+
+          <div className="flex justify-end gap-2 mt-4">
             <Button variant="outline" onClick={onClose}>
               Cancelar
             </Button>
