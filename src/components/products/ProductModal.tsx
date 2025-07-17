@@ -92,25 +92,49 @@ const ProductModal: React.FC<ProductModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (
-      !formData.denominacion ||
-      !formData.descripcion ||
-      !formData.precioVenta ||
-      !formData.categoriaId
-    ) {
-      alert('Completa todos los campos obligatorios');
-      return;
-    }
+ const handleSubmit = (e: React.FormEvent) => {
+  e.preventDefault();
 
-    if (imageFile) {
-      formData.imagenes = [URL.createObjectURL(imageFile)];
-    }
+  // Validar campos obligatorios
+  if (
+    !formData.denominacion?.trim() ||
+    !formData.descripcion?.trim() ||
+    !formData.precioVenta ||
+    !formData.categoriaId
+  ) {
+    console.warn('Completa todos los campos obligatorios');
+    alert('Completa todos los campos obligatorios');
+    return;
+  }
 
-    onSave(formData);
-    onClose();
+  // Verificar que la categoría seleccionada exista
+  const selectedCategory = categories.find(
+    (cat) => cat.id.toString() === formData.categoriaId
+  );
+
+  if (!selectedCategory) {
+    console.warn('La categoría seleccionada no es válida');
+    alert('Selecciona una categoría válida');
+    return;
+  }
+
+  // Asignar el objeto categoría completo
+  const updatedFormData = {
+    ...formData,
+    categoria: {
+      id: selectedCategory.id.toString(),
+      denominacion: selectedCategory.denominacion,
+    },
   };
+
+  // Asignar imagen si se cargó una
+  if (imageFile) {
+    updatedFormData.imagenes = [URL.createObjectURL(imageFile)];
+  }
+
+  onSave(updatedFormData);
+  onClose();
+};
 
   const addIngredient = () => {
     const newDetail = {

@@ -1,4 +1,3 @@
-import { Supply } from './supply';
 export interface User {
   id: string;
   username: string;

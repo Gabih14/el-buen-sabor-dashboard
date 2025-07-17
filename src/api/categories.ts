@@ -1,6 +1,6 @@
 // api/categories.ts
 import apiClient from './apiClient';
-import { ProductCategory, Subcategoria } from '../types/product-category';
+import { ProductCategory } from '../types/product-category';
 
 export interface FlatCategory {
   id: number;

@@ -56,7 +56,7 @@ const SuppliesPage: React.FC = () => {
   const [selectedSupply, setSelectedSupply] = useState<Supply | undefined>();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<number | null>(null);
 
-  const [rawCategories, setRawCategories] = useState<Category[]>([]);
+ // const [rawCategories, setRawCategories] = useState<Category[]>([]);
   const [flatCategories, setFlatCategories] = useState<Category[]>([]);
 
   useEffect(() => {
@@ -80,7 +80,7 @@ const SuppliesPage: React.FC = () => {
     try {
       const res = await apiClient.get('/categoria/listar');
       const data = res.data;
-      setRawCategories(data);
+      //setRawCategories(data);
 
       const flattened = flattenCategories(data);
       setFlatCategories(flattened);
