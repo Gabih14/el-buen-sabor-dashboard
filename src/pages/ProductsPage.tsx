@@ -69,27 +69,38 @@ const loadCategories = async () => {
     setShowDeleteConfirm(null);
   };
 
-  const handleSave = (productData: Partial<MenuItem>) => {
-    if (selectedProduct) {
-      setProducts(products.map(p =>
-        p.id === selectedProduct.id ? { ...p, ...productData } : p
-      ));
-    } else {
-      const newProduct: MenuItem = {
-        id: Date.now().toString(),
-        denominacion: productData.denominacion || '',
-        categoriaId: productData.categoriaId || '',
-        categoria: productData.categoria || { id: '', denominacion: '' },
-        imagenes: productData.imagenes || [],
-        precioVenta: productData.precioVenta || 0,
-        descripcion: productData.descripcion || '',
-        tiempoEstimadoMinutos: productData.tiempoEstimadoMinutos || 0,
-        preparacion: productData.preparacion || '',
-        detalles: productData.detalles || []
-      };
-      setProducts([...products, newProduct]);
-    }
-  };
+ const handleSave = async (productData: Partial<MenuItem>): Promise<MenuItem> => {
+  if (selectedProduct) {
+    const updatedProduct: MenuItem = {
+      ...selectedProduct,
+      ...productData,
+    };
+
+    setProducts((prev) =>
+      prev.map((p) => (p.id === selectedProduct.id ? updatedProduct : p))
+    );
+
+    return updatedProduct;
+  } else {
+    const newProduct: MenuItem = {
+      id: Date.now().toString(),
+      denominacion: productData.denominacion || '',
+      categoriaId: productData.categoriaId || '',
+      categoria: productData.categoria || { id: '', denominacion: '' },
+      imagenes: productData.imagenes || [],
+      precioVenta: productData.precioVenta || 0,
+      descripcion: productData.descripcion || '',
+      tiempoEstimadoMinutos: productData.tiempoEstimadoMinutos || 0,
+      preparacion: productData.preparacion || '',
+      detalles: productData.detalles || [],
+    };
+
+    setProducts((prev) => [...prev, newProduct]);
+
+    return newProduct;
+  }
+};
+
 
   if (loading) {
     return (

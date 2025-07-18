@@ -6,12 +6,13 @@ import { Supply } from '../../types/supply';
 import { X, Plus, Trash2 } from 'lucide-react';
 import { FlatCategory } from '../../api/categories';
 import { fetchSupplies } from '../../api/supplies';
+import apiClient from '../../api/apiClient';
 
 
 interface ProductModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (product: Partial<MenuItem>) => void;
+  onSave: (product: Partial<MenuItem>) => Promise<MenuItem>;
   product?: MenuItem;
   categories: FlatCategory[];
 }
@@ -77,7 +78,7 @@ const ProductModal: React.FC<ProductModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // Validar campos obligatorios
@@ -92,9 +93,9 @@ const ProductModal: React.FC<ProductModalProps> = ({
       return;
     }
 
-    // Verificar que la categoría seleccionada exista
+    // Verificar categoría válida
     const selectedCategory = categories.find(
-      (cat) => cat.id.toString() === formData.categoriaId
+      (cat) => cat.id === Number(formData.categoriaId)
     );
 
     if (!selectedCategory) {
@@ -103,8 +104,8 @@ const ProductModal: React.FC<ProductModalProps> = ({
       return;
     }
 
-    // Asignar el objeto categoría completo
-    const updatedFormData = {
+    // Armar objeto actualizado
+    const updatedFormData: Partial<MenuItem> = {
       ...formData,
       categoria: {
         id: selectedCategory.id.toString(),
@@ -112,14 +113,36 @@ const ProductModal: React.FC<ProductModalProps> = ({
       },
     };
 
-    // Asignar imagen si se cargó una
-    if (imageFile) {
-      updatedFormData.imagenes = [URL.createObjectURL(imageFile)];
-    }
+    try {
+      // Guardar el producto
+      const savedProduct = await onSave(updatedFormData); // ← asegúrate que `onSave` retorne el producto guardado (con ID)
 
-    onSave(updatedFormData);
-    onClose();
+      // Subir imagen si hay
+      if (imageFile && savedProduct?.id) {
+        const formDataImg = new FormData();
+        formDataImg.append('file', imageFile);
+        formDataImg.append('entityId', savedProduct.id.toString());
+        formDataImg.append('entityType', 'manufacturado'); // ← esto depende del backend
+
+        try {
+          await apiClient.post('/images/uploadToEntity', formDataImg, {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          });
+        } catch (error) {
+          console.error('Error al subir imagen:', error);
+        }
+      }
+
+
+      onClose();
+    } catch (error) {
+      console.error('Error al guardar el producto:', error);
+      alert('Hubo un error al guardar el producto');
+    }
   };
+
 
   const addIngredient = () => {
     if (supplies.length === 0) return;
