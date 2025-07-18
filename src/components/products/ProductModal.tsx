@@ -59,8 +59,31 @@ const ProductModal: React.FC<ProductModalProps> = ({
 
 
   useEffect(() => {
+    const fetchProductImages = async (productId: string) => {
+      try {
+        const response = await apiClient.get(`/images/byEntity`, {
+          params: {
+            entityId: productId,
+            entityType: 'manufacturado',
+          },
+        });
+
+        if (response.data.length > 0) {
+          setFormData((prev) => ({
+            ...prev,
+            imagenes: [response.data[0].url], // Solo una imagen por ahora
+          }));
+        }
+      } catch (error) {
+        console.error('Error al obtener imágenes del producto:', error);
+      }
+    };
+
     if (product) {
       setFormData(product);
+      if (product.id) {
+        fetchProductImages(product.id.toString());
+      }
     } else {
       setFormData({
         denominacion: '',
@@ -73,8 +96,10 @@ const ProductModal: React.FC<ProductModalProps> = ({
         imagenes: [],
       });
     }
+
     setImageFile(null);
   }, [product]);
+
 
   if (!isOpen) return null;
 
@@ -258,6 +283,13 @@ const ProductModal: React.FC<ProductModalProps> = ({
               className="block w-full text-sm border border-gray-300 rounded-md p-2"
             />
           </div>
+          {formData.imagenes && formData.imagenes.length > 0 && (
+            <img
+              src={formData.imagenes[0]}
+              alt="Vista previa"
+              className="mt-2 w-40 h-40 object-cover rounded-md border"
+            />
+          )}
 
           {/* Preparación */}
           <div>
