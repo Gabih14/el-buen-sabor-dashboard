@@ -64,10 +64,19 @@ const loadCategories = async () => {
     setIsModalOpen(true);
   };
 
-  const handleDelete = (productId: string) => {
-    setProducts(products.filter(p => p.id !== productId));
+const handleDelete = async (productId: string) => {
+  try {
+    // Llamar al backend para hacer la baja lógica
+    await apiClient.delete(`/articulosManufacturados/baja/${productId}`);
+
+    // Si fue exitoso, actualizar el estado local
+    setProducts(prev => prev.filter(p => p.id !== productId));
     setShowDeleteConfirm(null);
-  };
+  } catch (error) {
+    console.error('Error al eliminar el producto:', error);
+    alert('Ocurrió un error al eliminar el producto');
+  }
+};
 
 const handleSave = async (productData: Partial<MenuItem>): Promise<MenuItem> => {
   try {
