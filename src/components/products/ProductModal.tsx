@@ -42,7 +42,12 @@ const ProductModal: React.FC<ProductModalProps> = ({
   });
   const [supplies, setSupplies] = useState<Supply[]>([]);
 
+  // Estado para manejar la imagen
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [imageError, setImageError] = useState<string | null>(null);
+
   useEffect(() => {
     const loadSupplies = async () => {
       try {
@@ -168,6 +173,59 @@ const ProductModal: React.FC<ProductModalProps> = ({
     }
   };
 
+  //funciones para manejar la imagen
+  // Funciones para manejar la imagen
+  const handleImageChange = (file: File) => {
+    // Validar tipo de archivo
+    if (!file.type.startsWith('image/')) {
+      setImageError('Por favor selecciona solo archivos de imagen');
+      return;
+    }
+
+    // Validar tamaño (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      setImageError('La imagen debe ser menor a 5MB');
+      return;
+    }
+
+    setImageError(null);
+    setImageFile(file);
+
+    // Crear preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setImagePreview(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+
+    const files = e.dataTransfer.files;
+    if (files && files[0]) {
+      handleImageChange(files[0]);
+    }
+  };
+
+  const removeImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    setImageError(null);
+    // Si estás editando, también limpia la imagen existente
+    setFormData(prev => ({ ...prev, imagenes: [] }));
+  };
 
   const addIngredient = () => {
     if (supplies.length === 0) return;
@@ -274,22 +332,86 @@ const ProductModal: React.FC<ProductModalProps> = ({
           </div>
 
           {/* Imagen */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Imagen del producto</label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => setImageFile(e.target.files?.[0] || null)}
-              className="block w-full text-sm border border-gray-300 rounded-md p-2"
-            />
+          <div className="space-y-3">
+            <label className="block text-sm font-medium text-gray-700">
+              Imagen del producto
+            </label>
+
+            {/* Área de carga de imagen */}
+            <div className="space-y-3">
+              {/* Mostrar imagen actual o preview */}
+              {(imagePreview || (formData.imagenes && formData.imagenes.length > 0)) && (
+                <div className="relative inline-block">
+                  <img
+                    src={imagePreview || formData.imagenes?.[0]}
+                    alt="Vista previa del producto"
+                    className="w-40 h-40 object-cover rounded-lg border-2 border-gray-200 shadow-sm"
+                    onError={() => setImageError('Error al cargar la imagen')}
+                  />
+                  <button
+                    type="button"
+                    onClick={removeImage}
+                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 transition-colors"
+                    title="Eliminar imagen"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              )}
+
+              {/* Área de drag & drop */}
+              <div
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                className={`
+        border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer
+        ${isDragging
+                    ? 'border-blue-400 bg-blue-50'
+                    : 'border-gray-300 hover:border-gray-400 hover:bg-gray-50'
+                  }
+      `}
+              >
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => e.target.files?.[0] && handleImageChange(e.target.files[0])}
+                  className="hidden"
+                  id="image-upload"
+                />
+
+                <label htmlFor="image-upload" className="cursor-pointer">
+                  <div className="space-y-2">
+                    <div className="mx-auto w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
+                      <Plus size={24} className="text-gray-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-700">
+                        Arrastra una imagen aquí o haz clic para seleccionar
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        PNG, JPG, JPEG hasta 5MB
+                      </p>
+                    </div>
+                  </div>
+                </label>
+              </div>
+
+              {/* Mensaje de error */}
+              {imageError && (
+                <div className="text-sm text-red-600 bg-red-50 p-2 rounded-md border border-red-200">
+                  {imageError}
+                </div>
+              )}
+
+              {/* Información útil */}
+              {!imagePreview && (!formData.imagenes || formData.imagenes.length === 0) && (
+                <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded-md">
+                  💡 <strong>Tip:</strong> Una buena imagen ayuda a que tu producto se vea más atractivo para los clientes
+                </div>
+              )}
+            </div>
           </div>
-          {formData.imagenes && formData.imagenes.length > 0 && (
-            <img
-              src={formData.imagenes[0]}
-              alt="Vista previa"
-              className="mt-2 w-40 h-40 object-cover rounded-md border"
-            />
-          )}
 
           {/* Preparación */}
           <div>

@@ -69,35 +69,42 @@ const loadCategories = async () => {
     setShowDeleteConfirm(null);
   };
 
- const handleSave = async (productData: Partial<MenuItem>): Promise<MenuItem> => {
-  if (selectedProduct) {
-    const updatedProduct: MenuItem = {
-      ...selectedProduct,
-      ...productData,
-    };
+const handleSave = async (productData: Partial<MenuItem>): Promise<MenuItem> => {
+  try {
+    if (selectedProduct) {
+      // 📝 Editar producto existente
+      const response = await apiClient.put<MenuItem>(
+        `/articulosManufacturados/modificar/${selectedProduct.id}`,
+        {
+          ...selectedProduct,
+          ...productData,
+        }
+      );
 
-    setProducts((prev) =>
-      prev.map((p) => (p.id === selectedProduct.id ? updatedProduct : p))
-    );
+      const updatedProduct = response.data;
 
-    return updatedProduct;
-  } else {
-    const newProduct: MenuItem = {
-      id: Date.now().toString(),
-      denominacion: productData.denominacion || '',
-      categoriaId: productData.categoriaId || '',
-      categoria: productData.categoria || { id: '', denominacion: '' },
-      imagenes: productData.imagenes || [],
-      precioVenta: productData.precioVenta || 0,
-      descripcion: productData.descripcion || '',
-      tiempoEstimadoMinutos: productData.tiempoEstimadoMinutos || 0,
-      preparacion: productData.preparacion || '',
-      detalles: productData.detalles || [],
-    };
+      // Actualizar en frontend
+      setProducts((prev) =>
+        prev.map((p) => (p.id === updatedProduct.id ? updatedProduct : p))
+      );
 
-    setProducts((prev) => [...prev, newProduct]);
+      return updatedProduct;
+    } else {
+      // 🆕 Crear producto nuevo
+      const response = await apiClient.post<MenuItem>(
+        '/articuloManufacturadoDetalle/crearArticuloManufacturado',
+        productData
+      );
 
-    return newProduct;
+      const createdProduct = response.data;
+
+      setProducts((prev) => [...prev, createdProduct]);
+
+      return createdProduct;
+    }
+  } catch (error) {
+    console.error('Error al guardar producto:', error);
+    throw error;
   }
 };
 
