@@ -5,9 +5,11 @@ import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import { Search, Plus, Edit, Trash2, ListFilter } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import type { MenuItem } from '../types';
+import type { MenuItem } from '../types/menuItem';
 import ProductModal from '../components/products/ProductModal';
-import apiClient from '../api/apiClient'; // 👈 nuevo
+import apiClient from '../api/apiClient'; 
+import { fetchCategories, FlatCategory } from '../api/categories';
+
 
 const fetchProducts = async (): Promise<MenuItem[]> => {
   const response = await apiClient.get('/articuloManufacturadoDetalle/todos');
@@ -15,6 +17,7 @@ const fetchProducts = async (): Promise<MenuItem[]> => {
 };
 
 const ProductsPage: React.FC = () => {
+  const [categoryOptions, setCategoryOptions] = useState<FlatCategory[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [products, setProducts] = useState<MenuItem[]>([]);
@@ -25,6 +28,7 @@ const ProductsPage: React.FC = () => {
 
   useEffect(() => {
     loadProducts();
+    loadCategories();
   }, []);
 
   const loadProducts = async () => {
@@ -38,7 +42,14 @@ const ProductsPage: React.FC = () => {
       setLoading(false);
     }
   };
-
+const loadCategories = async () => {
+  try {
+    const data = await fetchCategories();
+    setCategoryOptions(data);
+  } catch (error) {
+    console.error('Error al cargar categorías:', error);
+  }
+};
   const categories = Array.from(new Set(products.map(product => product.categoria.denominacion)));
 
   const filteredProducts = products.filter(product => {
@@ -53,32 +64,59 @@ const ProductsPage: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleDelete = (productId: string) => {
-    setProducts(products.filter(p => p.id !== productId));
-    setShowDeleteConfirm(null);
-  };
+const handleDelete = async (productId: string) => {
+  try {
+    // Llamar al backend para hacer la baja lógica
+    await apiClient.delete(`/articulosManufacturados/baja/${productId}`);
 
-  const handleSave = (productData: Partial<MenuItem>) => {
+    // Si fue exitoso, actualizar el estado local
+    setProducts(prev => prev.filter(p => p.id !== productId));
+    setShowDeleteConfirm(null);
+  } catch (error) {
+    console.error('Error al eliminar el producto:', error);
+    alert('Ocurrió un error al eliminar el producto');
+  }
+};
+
+const handleSave = async (productData: Partial<MenuItem>): Promise<MenuItem> => {
+  try {
     if (selectedProduct) {
-      setProducts(products.map(p =>
-        p.id === selectedProduct.id ? { ...p, ...productData } : p
-      ));
+      // 📝 Editar producto existente
+      const response = await apiClient.put<MenuItem>(
+        `/articulosManufacturados/modificar/${selectedProduct.id}`,
+        {
+          ...selectedProduct,
+          ...productData,
+        }
+      );
+
+      const updatedProduct = response.data;
+
+      // Actualizar en frontend
+      setProducts((prev) =>
+        prev.map((p) => (p.id === updatedProduct.id ? updatedProduct : p))
+      );
+
+      return updatedProduct;
     } else {
-      const newProduct: MenuItem = {
-        id: Date.now().toString(),
-        denominacion: productData.denominacion || '',
-        categoriaId: productData.categoriaId || '',
-        categoria: productData.categoria || { id: '', denominacion: '' },
-        imagenes: productData.imagenes || [],
-        precioVenta: productData.precioVenta || 0,
-        descripcion: productData.descripcion || '',
-        tiempoEstimadoMinutos: productData.tiempoEstimadoMinutos || 0,
-        preparacion: productData.preparacion || '',
-        detalles: productData.detalles || []
-      };
-      setProducts([...products, newProduct]);
+      // 🆕 Crear producto nuevo
+      const response = await apiClient.post<MenuItem>(
+        '/articuloManufacturadoDetalle/crearArticuloManufacturado',
+        productData
+      );
+
+      const createdProduct = response.data;
+
+      setProducts((prev) => [...prev, createdProduct]);
+
+      return createdProduct;
     }
-  };
+  } catch (error) {
+    console.error('Error al guardar producto:', error);
+    throw error;
+  }
+};
+
 
   if (loading) {
     return (
@@ -237,7 +275,7 @@ const ProductsPage: React.FC = () => {
         }}
         onSave={handleSave}
         product={selectedProduct}
-        categories={categories}
+        categories={categoryOptions}
       />
     </Layout>
   );
