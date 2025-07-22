@@ -141,6 +141,7 @@ const ProductModal: React.FC<ProductModalProps> = ({
         id: selectedCategory.id.toString(),
         denominacion: selectedCategory.denominacion,
       },
+      type: 'MANUFACTURADO', // ← necesario para modificar el producto
     };
 
     try {
@@ -218,30 +219,30 @@ const ProductModal: React.FC<ProductModalProps> = ({
     }
   };
 
-const removeImage = async () => {
-  setImageError(null);
+  const removeImage = async () => {
+    setImageError(null);
 
-  // Si el producto ya existe (tiene ID), intentar eliminar del backend
-  if (formData.id) {
-    try {
-      await apiClient.post(`/images/deleteFirstImageFromEntity`, null, {
-        params: {
-          entityId: formData.id,
-          entityType: 'manufacturado', // Cambiá a 'insumo' si estás trabajando con insumos
-        },
-      });
-    } catch (error) {
-      console.error('Error al eliminar imagen desde el backend:', error);
-      setImageError('No se pudo eliminar la imagen en el servidor');
-      return;
+    // Si el producto ya existe (tiene ID), intentar eliminar del backend
+    if (formData.id) {
+      try {
+        await apiClient.post(`/images/deleteFirstImageFromEntity`, null, {
+          params: {
+            entityId: formData.id,
+            entityType: 'manufacturado', // Cambiá a 'insumo' si estás trabajando con insumos
+          },
+        });
+      } catch (error) {
+        console.error('Error al eliminar imagen desde el backend:', error);
+        setImageError('No se pudo eliminar la imagen en el servidor');
+        return;
+      }
     }
-  }
 
-  // Limpiar preview e imagen local
-  setImageFile(null);
-  setImagePreview(null);
-  setFormData((prev) => ({ ...prev, imagenes: [] }));
-};
+    // Limpiar preview e imagen local
+    setImageFile(null);
+    setImagePreview(null);
+    setFormData((prev) => ({ ...prev, imagenes: [] }));
+  };
 
 
   const addIngredient = () => {

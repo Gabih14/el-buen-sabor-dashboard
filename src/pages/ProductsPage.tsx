@@ -7,8 +7,9 @@ import { Search, Plus, Edit, Trash2, ListFilter } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { MenuItem } from '../types/menuItem';
 import ProductModal from '../components/products/ProductModal';
-import apiClient from '../api/apiClient'; 
+import apiClient from '../api/apiClient';
 import { fetchCategories, FlatCategory } from '../api/categories';
+import { normalizeManufacturedProduct } from '../utils/normalizeManufacturedProduct';
 
 
 const fetchProducts = async (): Promise<MenuItem[]> => {
@@ -42,14 +43,14 @@ const ProductsPage: React.FC = () => {
       setLoading(false);
     }
   };
-const loadCategories = async () => {
-  try {
-    const data = await fetchCategories();
-    setCategoryOptions(data);
-  } catch (error) {
-    console.error('Error al cargar categorías:', error);
-  }
-};
+  const loadCategories = async () => {
+    try {
+      const data = await fetchCategories();
+      setCategoryOptions(data);
+    } catch (error) {
+      console.error('Error al cargar categorías:', error);
+    }
+  };
   const categories = Array.from(new Set(products.map(product => product.categoria.denominacion)));
 
   const filteredProducts = products.filter(product => {
@@ -64,49 +65,64 @@ const loadCategories = async () => {
     setIsModalOpen(true);
   };
 
-const handleDelete = async (productId: string) => {
-  try {
-    // Llamar al backend para hacer la baja lógica
-    await apiClient.delete(`/articulosManufacturados/baja/${productId}`);
+  const handleDelete = async (productId: string) => {
+    try {
+      // Llamar al backend para hacer la baja lógica
+      await apiClient.delete(`/articulosManufacturados/baja/${productId}`);
 
-    // Si fue exitoso, actualizar el estado local
-    setProducts(prev => prev.filter(p => p.id !== productId));
-    setShowDeleteConfirm(null);
-  } catch (error) {
-    console.error('Error al eliminar el producto:', error);
-    alert('Ocurrió un error al eliminar el producto');
-  }
-};
+      // Si fue exitoso, actualizar el estado local
+      setProducts(prev => prev.filter(p => p.id !== productId));
+      setShowDeleteConfirm(null);
+    } catch (error) {
+      console.error('Error al eliminar el producto:', error);
+      alert('Ocurrió un error al eliminar el producto');
+    }
+  };
 
-const handleSave = async (productData: Partial<MenuItem>): Promise<MenuItem> => {
+  const handleSave = async (productData: Partial<MenuItem>): Promise<MenuItem> => {
   try {
+    // Estructura base para el payload del backend
+    const payload = {
+      type: "MANUFACTURADO",
+      denominacion: productData.denominacion,
+      descripcion: productData.descripcion,
+      precioVenta: productData.precioVenta,
+      tiempoEstimadoMinutos: productData.tiempoEstimadoMinutos,
+      preparacion: productData.preparacion,
+      categoria: {
+        id: Number(productData.categoria?.id),
+      },
+      detalles: (productData.detalles || []).map((detalle) => ({
+        cantidad: detalle.cantidad,
+        articuloInsumo: {
+          id: (detalle.item as any).id,
+          type: "INSUMO",
+        },
+      })),
+    };
     if (selectedProduct) {
-      // 📝 Editar producto existente
+      // 📝 Modificación
       const response = await apiClient.put<MenuItem>(
         `/articulosManufacturados/modificar/${selectedProduct.id}`,
-        {
-          ...selectedProduct,
-          ...productData,
-        }
+        payload
       );
 
-      const updatedProduct = response.data;
+      const updatedProduct = normalizeManufacturedProduct(response.data);
 
-      // Actualizar en frontend
+
       setProducts((prev) =>
         prev.map((p) => (p.id === updatedProduct.id ? updatedProduct : p))
       );
 
       return updatedProduct;
     } else {
-      // 🆕 Crear producto nuevo
+      // 🆕 Creación
       const response = await apiClient.post<MenuItem>(
         '/articuloManufacturadoDetalle/crearArticuloManufacturado',
-        productData
+        payload
       );
 
-      const createdProduct = response.data;
-
+      const createdProduct = normalizeManufacturedProduct(response.data);
       setProducts((prev) => [...prev, createdProduct]);
 
       return createdProduct;
@@ -116,6 +132,7 @@ const handleSave = async (productData: Partial<MenuItem>): Promise<MenuItem> => 
     throw error;
   }
 };
+
 
 
   if (loading) {
