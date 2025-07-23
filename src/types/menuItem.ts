@@ -15,6 +15,7 @@ export interface MenuItem {
     denominacion: string;
   };
   imagenes: string[];
+  type: string;
   precioVenta: number;
   descripcion: string;
   tiempoEstimadoMinutos: number;
