@@ -1,21 +1,30 @@
 import apiClient from './apiClient';
 import { Role } from '../types/employee';
 
+interface RolePayload {
+  name: string;
+  description: string;
+}
+
+// Trae todos los roles desde el backend
 export const fetchRoles = async (): Promise<Role[]> => {
   const response = await apiClient.get('/api/admin/roles');
   return response.data;
 };
 
-export const createRole = async (data: Partial<Role>): Promise<Role> => {
-  const response = await apiClient.post('/api/admin/roles', data);
+// Crea un nuevo rol
+export const createRole = async (data: RolePayload): Promise<Role> => {
+  const response = await apiClient.post('/api/admin/roles/createRole', data);
   return response.data;
 };
 
-export const updateRole = async (id: number, data: Partial<Role>): Promise<Role> => {
-  const response = await apiClient.put(`/api/admin/roles/${id}`, data);
+// Modifica un rol existente
+export const updateRole = async (id: number, data: RolePayload): Promise<Role> => {
+  const response = await apiClient.put('/api/admin/roles/modifyRole', { id, ...data });
   return response.data;
 };
 
+// Elimina un rol por ID (borrado lógico)
 export const deleteRole = async (id: number): Promise<void> => {
-  await apiClient.delete(`/api/admin/roles/${id}`);
+  await apiClient.delete(`/api/admin/roles/deleteRole?id=${id}`);
 };
