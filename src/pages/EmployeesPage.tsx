@@ -4,9 +4,10 @@ import Layout from '../components/layout/Layout';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
-import { Search, UserPlus, Edit, Trash2, UserCheck, UserX } from 'lucide-react';
+import { Search, UserPlus, Edit, Trash2, UserCheck, UserX, ListFilter } from 'lucide-react';
 import { Employee } from '../types/employee';
 import { fetchEmployees } from '../api/employees';
+import { Link } from 'react-router-dom';
 
 const statusVariant: Record<string, any> = {
   active: 'success',
@@ -50,11 +51,18 @@ const EmployeesPage: React.FC = () => {
           <h1 className="text-2xl font-serif font-bold text-gray-800">Gestión de Empleados</h1>
           <p className="text-gray-600">Administra la información de los empleados</p>
         </div>
-        <Button variant="primary" icon={<UserPlus size={18} />}>
-          Nuevo Empleado
-        </Button>
-      </div>
+        <div className="flex gap-2">
+          <Link to="/employees/roles">
+            <Button variant="outline" icon={<ListFilter size={18} />}>
+              Roles
+            </Button>
+          </Link>
 
+          <Button variant="primary" icon={<UserPlus size={18} />}>
+            Nuevo Empleado
+          </Button>
+        </div>
+      </div>
       <Card className="mb-6">
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="relative flex-grow">
