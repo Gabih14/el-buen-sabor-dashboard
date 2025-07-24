@@ -39,7 +39,6 @@ const EmployeeRolesPage: React.FC = () => {
     };
 
     const handleSave = async (data: { name: string; description: string }) => {
-
         console.log('Rol actualizado:', data);
         if (selectedRole?.id) {
             console.log('Actualizando rol existente:', selectedRole.id);
@@ -48,7 +47,11 @@ const EmployeeRolesPage: React.FC = () => {
             let savedRole: Role;
 
             if (selectedRole?.id) {
-                savedRole = await updateRole(selectedRole.id, data);
+                savedRole = await updateRole(selectedRole.id, {
+                    name: data.name,
+                    description: data.description,
+                    auth0RoleId: selectedRole.auth0RoleId, // 👈 Agregá esto
+                });
             } else {
                 savedRole = await createRole(data);
             }
