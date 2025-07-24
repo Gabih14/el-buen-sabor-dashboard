@@ -4,7 +4,7 @@ import Layout from '../components/layout/Layout';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
-import { Search, UserPlus, Edit, Trash2, UserCheck, UserX, ListFilter } from 'lucide-react';
+import { Search, UserPlus, Edit, Trash2, ListFilter } from 'lucide-react';
 import { Employee } from '../types/employee';
 import { fetchEmployees } from '../api/employees';
 import { Link } from 'react-router-dom';
@@ -13,15 +13,6 @@ import { fetchRoles } from '../api/roles';
 import { createEmployee, updateEmployee } from '../api/employees'; // Debes tener estas funciones en tu api
 import { Role } from '../types/employee';
 
-const statusVariant: Record<string, any> = {
-  active: 'success',
-  inactive: 'danger',
-};
-
-const statusLabel: Record<string, string> = {
-  active: 'Activo',
-  inactive: 'Inactivo',
-};
 
 const EmployeesPage: React.FC = () => {
   const [employees, setEmployees] = useState<Employee[]>([]);
