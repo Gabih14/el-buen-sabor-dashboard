@@ -21,6 +21,7 @@ import ProductCategoriesPage from '../pages/ProductCategoriesPage';
 import { ProtectedRoute } from '../components/auth/ProtectedRoute';
 import { setTokenGetter } from '../api/apiClient';
 import SuppliesPage from '../pages/SuppliesPage';
+import EmployeeRolesPage from '../pages/EmployeeRolesPage';
 
 // Roles
 const ALL_ROLES = ['admin', 'manager', 'employee', 'delivery'];
@@ -77,6 +78,14 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute allowedRoles={ADMIN_MANAGER}>
             <EmployeesPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/employees/roles"
+        element={
+          <ProtectedRoute allowedRoles={ADMIN_MANAGER_EMPLOYEE}>
+            <EmployeeRolesPage />
           </ProtectedRoute>
         }
       />
