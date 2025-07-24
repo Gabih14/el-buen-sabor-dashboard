@@ -67,16 +67,6 @@ export interface DeliveryInfo {
   customerPhone: string;
 }
 
-export interface MenuItem {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  category: string;
-  imageUrl?: string;
-  availability: boolean;
-  preparationTime: number; // in minutes
-}
 
 export interface AuthState {
   user: User | null;

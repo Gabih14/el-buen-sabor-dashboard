@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
+import { useAuth0 } from '@auth0/auth0-react';
 import Sidebar from './Sidebar';
 import Header from './Header';
-import { useAuth } from '../../context/AuthContext';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -22,7 +22,7 @@ const pageTitles: Record<string, string> = {
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
-  const { currentUser } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth0();
 
   // Get the current page title based on the path
   const getPageTitle = () => {
@@ -52,8 +52,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     };
   }, [sidebarOpen]);
 
-  if (!currentUser) {
-    return <>{children}</>;
+  // Optional: show loading until Auth0 is ready
+  if (isLoading) {
+    return <div className="p-4 text-center">Cargando...</div>;
+  }
+
+  // Fallback for unauthenticated access (can be removed if handled by route guard)
+  if (!isAuthenticated) {
+    return null;
   }
 
   return (

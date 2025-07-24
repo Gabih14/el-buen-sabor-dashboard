@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth0, GetTokenSilentlyOptions } from '@auth0/auth0-react';
 
 // Pages
 import LoginPage from '../pages/auth/LoginPage';
@@ -13,132 +13,142 @@ import OrdersPage from '../pages/OrdersPage';
 import DeliveryPage from '../pages/DeliveryPage';
 import ReportsPage from '../pages/ReportsPage';
 import SettingsPage from '../pages/SettingsPage';
+import { CallbackPage } from '../pages/CallbackPage';
+import ProductsPage from '../pages/ProductsPage';
+import ProductCategoriesPage from '../pages/ProductCategoriesPage';
 
-// Route Guards
-const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated, currentUser } = useAuth();
-  
-  if (!isAuthenticated) {
-    return <Navigate to="/login" />;
-  }
-  
-  // If authenticated but first login, redirect to change password
-  if (currentUser?.isFirstLogin) {
-    return <Navigate to="/change-password" />;
-  }
-  
-  return <>{children}</>;
-};
+// Component
+import { ProtectedRoute } from '../components/auth/ProtectedRoute';
+import { setTokenGetter } from '../api/apiClient';
+import SuppliesPage from '../pages/SuppliesPage';
+import EmployeeRolesPage from '../pages/EmployeeRolesPage';
 
-const RoleBasedRoute: React.FC<{
-  children: React.ReactNode;
-  allowedRoles: string[];
-}> = ({ children, allowedRoles }) => {
-  const { currentUser } = useAuth();
-  
-  if (!currentUser || !allowedRoles.includes(currentUser.role)) {
-    return <Navigate to="/dashboard" />;
-  }
-  
-  return <>{children}</>;
-};
+// Roles
+const ALL_ROLES = ['admin', 'manager', 'employee', 'delivery'];
+const ADMIN_MANAGER = ['admin', 'manager'];
+const ADMIN = ['admin'];
+const ADMIN_MANAGER_DELIVERY = ['admin', 'manager', 'delivery'];
+const ADMIN_MANAGER_EMPLOYEE = ['admin', 'manager', 'employee'];
 
 const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated, currentUser } = useAuth();
-  
-  if (isAuthenticated) {
-    // If authenticated but first login, redirect to change password
-    if (currentUser?.isFirstLogin) {
-      return <Navigate to="/change-password" />;
-    }
-    // Otherwise, redirect to dashboard
-    return <Navigate to="/dashboard" />;
-  }
-  
+  const { isAuthenticated, isLoading } = useAuth0();
+  if (isLoading) return <p>Cargando...</p>;
+  if (isAuthenticated) return <Navigate to="/dashboard" />;
   return <>{children}</>;
 };
 
 const AppRoutes: React.FC = () => {
+  const { getAccessTokenSilently } = useAuth0();
+
+  useEffect(() => {
+    const options: GetTokenSilentlyOptions = {
+      authorizationParams: {
+        audience: import.meta.env.VITE_AUTH0_AUDIENCE,
+      },
+    };
+    setTokenGetter(() => getAccessTokenSilently(options));
+  }, [getAccessTokenSilently]);
+
   return (
     <Routes>
       {/* Public Routes */}
       <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+      <Route path="/callback" element={<CallbackPage />} />
       <Route path="/change-password" element={<ChangePasswordPage />} />
-      
-      {/* Private Routes */}
-      <Route path="/dashboard" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
-      
-      {/* Role-restricted Routes */}
-      <Route 
-        path="/customers" 
+
+      {/* Protected Routes */}
+      <Route
+        path="/dashboard"
         element={
-          <PrivateRoute>
-            <RoleBasedRoute allowedRoles={['admin', 'manager', 'employee']}>
-              <CustomersPage />
-            </RoleBasedRoute>
-          </PrivateRoute>
-        } 
+          <ProtectedRoute allowedRoles={ALL_ROLES}>
+            <DashboardPage />
+          </ProtectedRoute>
+        }
       />
-      
-      <Route 
-        path="/employees" 
+      <Route
+        path="/customers"
         element={
-          <PrivateRoute>
-            <RoleBasedRoute allowedRoles={['admin', 'manager']}>
-              <EmployeesPage />
-            </RoleBasedRoute>
-          </PrivateRoute>
-        } 
+          <ProtectedRoute allowedRoles={ADMIN_MANAGER_EMPLOYEE}>
+            <CustomersPage />
+          </ProtectedRoute>
+        }
       />
-      
-      <Route 
-        path="/orders" 
+      <Route
+        path="/employees"
         element={
-          <PrivateRoute>
-            <RoleBasedRoute allowedRoles={['admin', 'manager', 'employee', 'delivery']}>
-              <OrdersPage />
-            </RoleBasedRoute>
-          </PrivateRoute>
-        } 
+          <ProtectedRoute allowedRoles={ADMIN_MANAGER}>
+            <EmployeesPage />
+          </ProtectedRoute>
+        }
       />
-      
-      <Route 
-        path="/delivery" 
+      <Route
+        path="/employees/roles"
         element={
-          <PrivateRoute>
-            <RoleBasedRoute allowedRoles={['admin', 'manager', 'delivery']}>
-              <DeliveryPage />
-            </RoleBasedRoute>
-          </PrivateRoute>
-        } 
+          <ProtectedRoute allowedRoles={ADMIN_MANAGER_EMPLOYEE}>
+            <EmployeeRolesPage />
+          </ProtectedRoute>
+        }
       />
-      
-      <Route 
-        path="/reports" 
+      <Route
+        path="/orders"
         element={
-          <PrivateRoute>
-            <RoleBasedRoute allowedRoles={['admin', 'manager']}>
-              <ReportsPage />
-            </RoleBasedRoute>
-          </PrivateRoute>
-        } 
+          <ProtectedRoute allowedRoles={ALL_ROLES}>
+            <OrdersPage />
+          </ProtectedRoute>
+        }
       />
-      
-      <Route 
-        path="/settings" 
+      <Route
+        path="/supplies"
         element={
-          <PrivateRoute>
-            <RoleBasedRoute allowedRoles={['admin']}>
-              <SettingsPage />
-            </RoleBasedRoute>
-          </PrivateRoute>
-        } 
+          <ProtectedRoute allowedRoles={ADMIN_MANAGER}>
+            <SuppliesPage />
+          </ProtectedRoute>
+        }
       />
-      
+
+      <Route
+        path="/products"
+        element={
+          <ProtectedRoute allowedRoles={ADMIN_MANAGER}>
+            <ProductsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/products/categories"
+        element={
+          <ProtectedRoute allowedRoles={ADMIN_MANAGER}>
+            <ProductCategoriesPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/delivery"
+        element={
+          <ProtectedRoute allowedRoles={ADMIN_MANAGER_DELIVERY}>
+            <DeliveryPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/reports"
+        element={
+          <ProtectedRoute allowedRoles={ADMIN_MANAGER}>
+            <ReportsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute allowedRoles={ADMIN}>
+            <SettingsPage />
+          </ProtectedRoute>
+        }
+      />
+
       {/* Redirects */}
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
-      
-      {/* 404 Route */}
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );

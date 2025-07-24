@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Menu, Bell, Search } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth0 } from '@auth0/auth0-react';
 import Badge from '../ui/Badge';
 
 interface HeaderProps {
@@ -9,13 +9,18 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ onMenuClick, title = 'Dashboard' }) => {
-  const { currentUser } = useAuth();
+  const { user } = useAuth0();
   const [notifications] = useState([
     { id: 1, text: 'Nueva orden recibida', time: '5 min' },
     { id: 2, text: 'Pedido #12345 entregado', time: '30 min' },
     { id: 3, text: 'Nuevo cliente registrado', time: '1 hora' },
   ]);
   const [showNotifications, setShowNotifications] = useState(false);
+
+  const initials =
+    (user?.given_name?.[0] && user?.family_name?.[0]
+      ? user.given_name[0] + user.family_name[0]
+      : user?.name?.[0]) || '?';
 
   return (
     <header className="bg-white border-b border-gray-200 p-4 flex items-center justify-between h-16">
@@ -84,15 +89,23 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, title = 'Dashboard' }) => 
         </div>
 
         <div className="hidden md:flex items-center space-x-3">
-          {currentUser && (
+          {user && (
             <>
-              <div className="bg-gray-200 rounded-full w-8 h-8 flex items-center justify-center">
-                <span className="text-gray-700 font-medium text-sm">
-                  {currentUser.firstName.charAt(0)}{currentUser.lastName.charAt(0)}
-                </span>
-              </div>
+              {user.picture ? (
+                <img
+                  src={user.picture}
+                  alt="User"
+                  className="w-8 h-8 rounded-full object-cover"
+                />
+              ) : (
+                <div className="bg-gray-200 rounded-full w-8 h-8 flex items-center justify-center">
+                  <span className="text-gray-700 font-medium text-sm">
+                    {initials}
+                  </span>
+                </div>
+              )}
               <span className="text-sm font-medium text-gray-700">
-                {currentUser.firstName}
+                {user.given_name || user.name}
               </span>
             </>
           )}
