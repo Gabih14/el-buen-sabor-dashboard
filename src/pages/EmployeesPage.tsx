@@ -8,6 +8,10 @@ import { Search, UserPlus, Edit, Trash2, UserCheck, UserX, ListFilter } from 'lu
 import { Employee } from '../types/employee';
 import { fetchEmployees } from '../api/employees';
 import { Link } from 'react-router-dom';
+import EmployeeModal from '../components/employees/EmployeeModal';
+import { fetchRoles } from '../api/roles';
+import { createEmployee, updateEmployee } from '../api/employees'; // Debes tener estas funciones en tu api
+import { Role } from '../types/employee';
 
 const statusVariant: Record<string, any> = {
   active: 'success',
@@ -23,20 +27,71 @@ const EmployeesPage: React.FC = () => {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | undefined>(undefined);
+  const [roles, setRoles] = useState<Role[]>([]);
 
   useEffect(() => {
     const load = async () => {
       try {
-        const data = await fetchEmployees();
-        setEmployees(data);
+        const [empData, rolesData] = await Promise.all([
+          fetchEmployees(),
+          fetchRoles(),
+        ]);
+        setEmployees(empData);
+        setRoles(rolesData.filter(r => !r.deleted));
       } catch (err) {
-        console.error('Error al cargar empleados:', err);
+        console.error('Error al cargar empleados o roles:', err);
       } finally {
         setLoading(false);
       }
     };
     load();
   }, []);
+
+  const handleSave = async (data: {
+    name: string;
+    lastName: string;
+    userEmail: string;
+    nickName: string;
+    roles: string[]; // 👈 Array de auth0RoleId
+  }) => {
+    try {
+      let savedEmployee: Employee;
+      if (selectedEmployee && selectedEmployee.id != null) {
+        console.log('Datos enviados a modifyUser:', {
+          id: selectedEmployee.id,
+          ...data,
+          auth0Id: selectedEmployee.auth0Id,
+        });
+        savedEmployee = await updateEmployee(selectedEmployee.id, {
+          ...data,
+          auth0Id: selectedEmployee.auth0Id,
+        });
+        setEmployees(prev =>
+          prev.map(emp => (emp.id === savedEmployee.id ? savedEmployee : emp))
+        );
+      } else {
+        savedEmployee = await createEmployee(data);
+        setEmployees(prev => [...prev, savedEmployee]);
+      }
+      setIsModalOpen(false);
+      setSelectedEmployee(undefined);
+    } catch (error) {
+      console.error('Error al guardar empleado:', error);
+      alert('No se pudo guardar el empleado.');
+    }
+  };
+
+  const openNewModal = () => {
+    setSelectedEmployee(undefined);
+    setIsModalOpen(true);
+  };
+
+  const openEditModal = (employee: Employee) => {
+    setSelectedEmployee(employee);
+    setIsModalOpen(true);
+  };
 
   const filteredEmployees = employees.filter(emp =>
     `${emp.name} ${emp.lastName ?? ''}`.toLowerCase().includes(search.toLowerCase()) ||
@@ -57,8 +112,7 @@ const EmployeesPage: React.FC = () => {
               Roles
             </Button>
           </Link>
-
-          <Button variant="primary" icon={<UserPlus size={18} />}>
+          <Button variant="primary" icon={<UserPlus size={18} />} onClick={openNewModal}>
             Nuevo Empleado
           </Button>
         </div>
@@ -120,7 +174,7 @@ const EmployeesPage: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end space-x-2">
-                        <Button variant="ghost" size="sm" icon={<Edit size={16} />} />
+                        <Button variant="ghost" size="sm" icon={<Edit size={16} />} onClick={() => openEditModal(emp)} />
                         <Button variant="ghost" size="sm" icon={<Trash2 size={16} />} />
                       </div>
                     </td>
@@ -130,6 +184,19 @@ const EmployeesPage: React.FC = () => {
             </table>
           </div>
         </div>
+      )}
+
+      {isModalOpen && (
+        <EmployeeModal
+          isOpen={isModalOpen}
+          onClose={() => {
+            setIsModalOpen(false);
+            setSelectedEmployee(undefined);
+          }}
+          onSave={handleSave}
+          employee={selectedEmployee}
+          roles={roles}
+        />
       )}
     </Layout>
   );
