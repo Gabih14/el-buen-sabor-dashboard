@@ -13,9 +13,14 @@ export const createEmployee = async (data: {
   lastName: string;
   userEmail: string;
   nickName: string;
-  roles: string[]; // 👈 Array de auth0RoleId
+  roles: string[];
+  password: string; // 👈 Nuevo campo
 }): Promise<Employee> => {
-  const response = await apiClient.post('/api/admin/users/createUser', data);
+  const response = await apiClient.post('/api/admin/users/createUser', {
+    ...data,
+    email: data.userEmail, // 👈 Corrige el nombre del campo
+    connection: "Username-Password-Authentication", // 👈 Agrega este campo
+  });
   return response.data;
 };
 
@@ -27,13 +32,14 @@ export const updateEmployee = async (
     lastName: string;
     userEmail: string;
     nickName: string;
-    roles: string[]; // 👈 Array de auth0RoleId
+    roles: string[];
     auth0Id: string;
   }
 ): Promise<Employee> => {
   const response = await apiClient.put('/api/admin/users/modifyUser', {
     id,
     ...data,
+    email: data.userEmail, // 👈 Corrige el nombre del campo
     auth0Id: data.auth0Id,
   });
   return response.data;

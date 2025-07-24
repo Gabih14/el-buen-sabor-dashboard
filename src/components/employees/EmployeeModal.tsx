@@ -9,7 +9,8 @@ interface EmployeeFormData {
   lastName: string;
   userEmail: string;
   nickName: string;
-  roles: string[]; // 👈 Array de auth0RoleId
+  roles: string[];
+  password: string; // 👈 Nuevo campo
 }
 
 interface EmployeeModalProps {
@@ -27,7 +28,9 @@ const EmployeeModal: React.FC<EmployeeModalProps> = ({ isOpen, onClose, onSave, 
     userEmail: '',
     nickName: '',
     roles: [],
+    password: '',
   });
+  const [passwordError, setPasswordError] = useState<string>('');
 
   useEffect(() => {
     if (employee) {
@@ -36,7 +39,8 @@ const EmployeeModal: React.FC<EmployeeModalProps> = ({ isOpen, onClose, onSave, 
         lastName: employee.lastName ?? '',
         userEmail: employee.userEmail,
         nickName: employee.nickName,
-        roles: employee.roles.map(r => r.auth0RoleId), // 👈 Usar auth0RoleId
+        roles: employee.roles.map(r => r.auth0RoleId),
+        password: '', // No mostrar la contraseña existente
       });
     } else {
       setFormData({
@@ -45,9 +49,27 @@ const EmployeeModal: React.FC<EmployeeModalProps> = ({ isOpen, onClose, onSave, 
         userEmail: '',
         nickName: '',
         roles: [],
+        password: '',
       });
     }
+    setPasswordError('');
   }, [employee]);
+
+  // Validación de contraseña fuerte
+  const validatePassword = (pwd: string) => {
+    // Mínimo 8 caracteres, una mayúscula, una minúscula y un número
+    return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,}$/.test(pwd);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validatePassword(formData.password)) {
+      setPasswordError('La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula y un número.');
+      return;
+    }
+    setPasswordError('');
+    onSave(formData);
+  };
 
   const handleRoleChange = (auth0RoleId: string) => {
     setFormData(prev => ({
@@ -56,11 +78,6 @@ const EmployeeModal: React.FC<EmployeeModalProps> = ({ isOpen, onClose, onSave, 
         ? prev.roles.filter(id => id !== auth0RoleId)
         : [...prev.roles, auth0RoleId],
     }));
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSave(formData);
   };
 
   if (!isOpen) return null;
@@ -114,6 +131,16 @@ const EmployeeModal: React.FC<EmployeeModalProps> = ({ isOpen, onClose, onSave, 
               ))}
             </div>
           </div>
+          <Input
+            label="Contraseña"
+            type="password"
+            value={formData.password}
+            onChange={e => setFormData({ ...formData, password: e.target.value })}
+            required
+          />
+          {passwordError && (
+            <div className="text-red-500 text-sm">{passwordError}</div>
+          )}
           <div className="flex justify-end space-x-2 pt-4">
             <Button variant="outline" onClick={onClose}>Cancelar</Button>
             <Button variant="primary" type="submit">Guardar</Button>

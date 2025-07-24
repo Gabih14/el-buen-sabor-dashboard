@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import Layout from '../components/layout/Layout';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
-import { Plus, Edit, Trash2 } from 'lucide-react';
+import { Plus, Edit, Trash2, ArrowLeft } from 'lucide-react'; // 👈 Agrega ArrowLeft
+import { Link } from 'react-router-dom'; // 👈 Asegúrate de importar Link
 import { Role } from '../types/employee';
 import { fetchRoles, deleteRole, updateRole, createRole } from '../api/roles';
 import RoleModal from '../components/employees/RoleModal'; // Asegurate de tener este componente creado
@@ -73,6 +74,13 @@ const EmployeeRolesPage: React.FC = () => {
 
     return (
         <Layout>
+            <div className="mb-8">
+                <Link to="/employees" className="text-gray-500 hover:text-gray-700">
+                    <Button variant="ghost" size="sm" icon={<ArrowLeft size={18} />}>
+                        Volver a Empleados
+                    </Button>
+                </Link>
+            </div>
             <div className="mb-6 flex justify-between items-center">
                 <div>
                     <h1 className="text-2xl font-serif font-bold text-gray-800">Roles de Empleados</h1>

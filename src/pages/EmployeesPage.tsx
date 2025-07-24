@@ -55,6 +55,7 @@ const EmployeesPage: React.FC = () => {
     userEmail: string;
     nickName: string;
     roles: string[]; // 👈 Array de auth0RoleId
+    password: string; // 👈 Agrega password aquí
   }) => {
     try {
       let savedEmployee: Employee;
@@ -72,7 +73,7 @@ const EmployeesPage: React.FC = () => {
           prev.map(emp => (emp.id === savedEmployee.id ? savedEmployee : emp))
         );
       } else {
-        savedEmployee = await createEmployee(data);
+        savedEmployee = await createEmployee(data); // 👈 Ahora data incluye password
         setEmployees(prev => [...prev, savedEmployee]);
       }
       setIsModalOpen(false);
