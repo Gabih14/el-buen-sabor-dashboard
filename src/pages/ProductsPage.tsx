@@ -83,23 +83,23 @@ const ProductsPage: React.FC = () => {
   try {
     // Estructura base para el payload del backend
     const payload = {
-      type: "MANUFACTURADO",
       denominacion: productData.denominacion,
+      categoriaId: Number(productData.categoria?.id ?? productData.categoriaId),
       descripcion: productData.descripcion,
-      precioVenta: productData.precioVenta,
       tiempoEstimadoMinutos: productData.tiempoEstimadoMinutos,
       preparacion: productData.preparacion,
-      categoria: {
-        id: Number(productData.categoria?.id),
-      },
-      detalles: (productData.detalles || []).map((detalle) => ({
-        cantidad: detalle.cantidad,
-        articuloInsumo: {
-          id: (detalle.item as any).id,
-          type: "INSUMO",
-        },
-      })),
+      precioVenta: productData.precioVenta,
+      detalles: (productData.detalles || [])
+        .filter(detalle => detalle.item)
+        .map((detalle) => ({
+          tipo: detalle.tipo ?? "INSUMO", // 👈 Asegúrate de incluir el tipo
+          cantidad: detalle.cantidad,
+          item: {
+            id: (detalle.item as any).id,
+          },
+        })),
     };
+    console.log('Payload para guardar producto:', payload);
     if (selectedProduct) {
       // 📝 Modificación
       const response = await apiClient.put<MenuItem>(
