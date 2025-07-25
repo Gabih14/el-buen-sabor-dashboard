@@ -135,8 +135,11 @@ const ProductsPage: React.FC = () => {
 
         return createdProduct;
       }
-    } catch (error) {
-      console.error('Error al guardar producto:', error);
+    } catch (error: any) {
+      // Si el backend envía un mensaje, lo devolvemos para mostrarlo en el modal
+      if (error?.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
       throw error;
     }
   };

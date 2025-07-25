@@ -47,6 +47,7 @@ const ProductModal: React.FC<ProductModalProps> = ({
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadSupplies = async () => {
@@ -110,67 +111,12 @@ const ProductModal: React.FC<ProductModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Validar campos obligatorios
-    if (
-      !formData.denominacion?.trim() ||
-      !formData.descripcion?.trim() ||
-      !formData.precioVenta ||
-      !formData.categoriaId
-    ) {
-      console.warn('Completa todos los campos obligatorios');
-      alert('Completa todos los campos obligatorios');
-      return;
-    }
-
-    // Verificar categoría válida
-    const selectedCategory = categories.find(
-      (cat) => cat.id === Number(formData.categoriaId)
-    );
-
-    if (!selectedCategory) {
-      console.warn('La categoría seleccionada no es válida');
-      alert('Selecciona una categoría válida');
-      return;
-    }
-
-    // Armar objeto actualizado
-    const updatedFormData: Partial<MenuItem> = {
-      ...formData,
-      categoria: {
-        id: selectedCategory.id.toString(),
-        denominacion: selectedCategory.denominacion,
-      },
-      type: 'MANUFACTURADO', // ← necesario para modificar el producto
-    };
-
+    setSaveError(null);
     try {
-      // Guardar el producto
-      const savedProduct = await onSave(updatedFormData); // ← asegúrate que `onSave` retorne el producto guardado (con ID)
-
-      // Subir imagen si hay
-      if (imageFile && savedProduct?.id) {
-        const formDataImg = new FormData();
-        formDataImg.append('file', imageFile);
-        formDataImg.append('entityId', savedProduct.id.toString());
-        formDataImg.append('entityType', 'manufacturado'); // ← esto depende del backend
-
-        try {
-          await apiClient.post('/images/uploadToEntity', formDataImg, {
-            headers: {
-              'Content-Type': 'multipart/form-data',
-            },
-          });
-        } catch (error) {
-          console.error('Error al subir imagen:', error);
-        }
-      }
-
-
+      await onSave(formData);
       onClose();
-    } catch (error) {
-      console.error('Error al guardar el producto:', error);
-      alert('Hubo un error al guardar el producto');
+    } catch (error: any) {
+      setSaveError(error.message || 'Ocurrió un error al guardar el producto');
     }
   };
 
@@ -288,6 +234,7 @@ const ProductModal: React.FC<ProductModalProps> = ({
         </div>
 
         <form onSubmit={handleSubmit} className="p-4 space-y-6">
+
           <Input
             label="Nombre del producto"
             value={formData.denominacion}
@@ -501,7 +448,11 @@ const ProductModal: React.FC<ProductModalProps> = ({
               ))
             )}
           </div>
-
+          {saveError && (
+            <div className="mb-2 text-red-600 font-semibold text-sm">
+              {saveError}
+            </div>
+          )}
 
           <div className="flex justify-end gap-2 mt-4">
             <Button variant="outline" onClick={onClose}>

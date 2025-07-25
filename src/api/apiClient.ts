@@ -41,7 +41,7 @@ apiClient.interceptors.response.use(
     if (axios.isAxiosError(error)) {
       const status = error.response?.status;
       const url = error.config?.url;
-      const message = error.message;
+      const message =  error.response?.data.message || error.message;
       const data = error.response?.data;
 
       console.warn(`[API ${status}] ${url}`);
