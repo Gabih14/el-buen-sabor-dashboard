@@ -10,6 +10,7 @@ import ProductModal from '../components/products/ProductModal';
 import apiClient from '../api/apiClient';
 import { fetchCategories, FlatCategory } from '../api/categories';
 import { normalizeManufacturedProduct } from '../utils/normalizeManufacturedProduct';
+import { serializeManufacturedProduct } from '../utils/serializeManufacturedProduct';
 
 
 const fetchProducts = async (): Promise<MenuItem[]> => {
@@ -51,12 +52,18 @@ const ProductsPage: React.FC = () => {
       console.error('Error al cargar categorías:', error);
     }
   };
-  const categories = Array.from(new Set(products.map(product => product.categoria.denominacion)));
+  const categories = Array.from(
+    new Set(
+      products
+        .map(product => product.categoria?.denominacion)
+        .filter(denom => denom != null)
+    )
+  );
 
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.denominacion.toLowerCase().includes(searchTerm.toLowerCase()) ||
       product.descripcion.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = !selectedCategory || product.categoria.denominacion === selectedCategory;
+    const matchesCategory = !selectedCategory || product.categoria?.denominacion === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
@@ -80,58 +87,59 @@ const ProductsPage: React.FC = () => {
   };
 
   const handleSave = async (productData: Partial<MenuItem>): Promise<MenuItem> => {
-  try {
-    // Estructura base para el payload del backend
-    const payload = {
-      denominacion: productData.denominacion,
-      categoriaId: Number(productData.categoria?.id ?? productData.categoriaId),
-      descripcion: productData.descripcion,
-      tiempoEstimadoMinutos: productData.tiempoEstimadoMinutos,
-      preparacion: productData.preparacion,
-      precioVenta: productData.precioVenta,
-      detalles: (productData.detalles || [])
-        .filter(detalle => detalle.item)
-        .map((detalle) => ({
-          tipo: detalle.tipo ?? "INSUMO", // 👈 Asegúrate de incluir el tipo
-          cantidad: detalle.cantidad,
-          item: {
-            id: (detalle.item as any).id,
-          },
-        })),
-    };
-    console.log('Payload para guardar producto:', payload);
-    if (selectedProduct) {
-      // 📝 Modificación
-      const response = await apiClient.put<MenuItem>(
-        `/articulosManufacturados/modificar/${selectedProduct.id}`,
-        payload
-      );
+    try {
+      // Estructura base para el payload del backend
+      const payload = {
+        type: "MANUFACTURADO", // 👈 NECESARIO para el backend
+        denominacion: productData.denominacion,
+        categoriaId: Number(productData.categoria?.id ?? productData.categoriaId),
+        descripcion: productData.descripcion,
+        tiempoEstimadoMinutos: productData.tiempoEstimadoMinutos,
+        preparacion: productData.preparacion,
+        precioVenta: productData.precioVenta,
+        detalles: (productData.detalles || [])
+          .filter(detalle => detalle.item)
+          .map((detalle) => ({
+            tipo: detalle.tipo ?? "INSUMO",
+            cantidad: detalle.cantidad,
+            item: {
+              id: (detalle.item as any).id,
+            },
+          })),
+      };
+      const payloadWithDetails = serializeManufacturedProduct(productData);
+      if (selectedProduct) {
+        // 📝 Modificación
+        const response = await apiClient.put<MenuItem>(
+          `/articulosManufacturados/modificar/${selectedProduct.id}`,
+          payloadWithDetails
+        );
 
-      const updatedProduct = normalizeManufacturedProduct(response.data);
+        const updatedProduct = normalizeManufacturedProduct(response.data);
 
 
-      setProducts((prev) =>
-        prev.map((p) => (p.id === updatedProduct.id ? updatedProduct : p))
-      );
+        setProducts((prev) =>
+          prev.map((p) => (p.id === updatedProduct.id ? updatedProduct : p))
+        );
 
-      return updatedProduct;
-    } else {
-      // 🆕 Creación
-      const response = await apiClient.post<MenuItem>(
-        '/articuloManufacturadoDetalle/crearArticuloManufacturado',
-        payload
-      );
+        return updatedProduct;
+      } else {
+        // 🆕 Creación
+        const response = await apiClient.post<MenuItem>(
+          '/articuloManufacturadoDetalle/crearArticuloManufacturado',
+          payload
+        );
 
-      const createdProduct = normalizeManufacturedProduct(response.data);
-      setProducts((prev) => [...prev, createdProduct]);
+        const createdProduct = normalizeManufacturedProduct(response.data);
+        setProducts((prev) => [...prev, createdProduct]);
 
-      return createdProduct;
+        return createdProduct;
+      }
+    } catch (error) {
+      console.error('Error al guardar producto:', error);
+      throw error;
     }
-  } catch (error) {
-    console.error('Error al guardar producto:', error);
-    throw error;
-  }
-};
+  };
 
 
 
@@ -226,7 +234,7 @@ const ProductsPage: React.FC = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <Badge variant="secondary" size="sm">
-                      {product.categoria.denominacion}
+                      {product.categoria?.denominacion ?? 'Sin categoría'}
                     </Badge>
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-500">{product.tiempoEstimadoMinutos} minutos</td>
